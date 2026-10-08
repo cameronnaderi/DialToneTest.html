@@ -1,0 +1,1143 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>DialTone Messenger</title>
+<style>
+/* Layout: one fixed teal desktop, draggable grey bevelled windows, taskbar pinned to the bottom. Single committed look. */
+:root{
+  --desk:#008080; --face:#c0c0c0; --hi:#ffffff; --lite:#dfdfdf; --shade:#808080; --dark:#0a0a0a;
+  --title:#000080; --title2:#1084d0; --title-fg:#ffffff; --title-off:#808080; --title-off-fg:#c0c0c0;
+  --field:#ffffff; --text:#000000; --mute:#555555; --sel:#000080; --sel-fg:#ffffff;
+  --me:#cc0000; --them:#0000cc; --sys:#666666; --tip:#ffffe1; --sun:#ffd400;
+  --ui:"MS Sans Serif","Microsoft Sans Serif",Tahoma,Geneva,Verdana,sans-serif;
+  --chat:"Times New Roman",Times,serif;
+  --mono:"Courier New",Courier,monospace;
+  --bar:30px;
+  --link:#0000ee; --vlink:#551a8b; --night:#000022; --lime:#33ff66; --warn:#ffcc00;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{background:var(--desk);color:var(--text);font:12px/1.3 var(--ui);overflow:hidden;-webkit-user-select:none;user-select:none}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:var(--text)}
+#desk{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:calc(var(--bar) + env(safe-area-inset-bottom,0px));overflow:hidden}
+#icons{position:absolute;left:16px;top:14px;bottom:8px;display:flex;flex-direction:column;flex-wrap:wrap;align-content:flex-start;gap:18px 10px}
+.dicon{width:76px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;padding:2px;color:var(--hi);text-align:center;cursor:pointer}
+.dicon span{padding:1px 3px;text-shadow:1px 1px var(--dark)}
+.dicon:focus-visible span,.dicon:active span{background:var(--sel);outline:1px dotted var(--hi)}
+.dicon svg{width:32px;height:32px;image-rendering:pixelated}
+
+.out{background:var(--face);border:2px solid;border-color:var(--hi) var(--dark) var(--dark) var(--hi);box-shadow:inset -1px -1px var(--shade),inset 1px 1px var(--lite)}
+.in{background:var(--field);border:2px solid;border-color:var(--shade) var(--hi) var(--hi) var(--shade);box-shadow:inset 1px 1px var(--dark),inset -1px -1px var(--lite)}
+.btn{background:var(--face);border:2px solid;border-color:var(--hi) var(--dark) var(--dark) var(--hi);box-shadow:inset -1px -1px var(--shade),inset 1px 1px var(--lite);padding:3px 8px;min-height:23px;cursor:pointer;white-space:nowrap}
+.btn:active,.btn.on{border-color:var(--dark) var(--hi) var(--hi) var(--dark);box-shadow:inset 1px 1px var(--shade),inset -1px -1px var(--lite);padding:4px 7px 2px 9px}
+.btn:focus-visible{outline:1px dotted var(--dark);outline-offset:-5px}
+.btn:disabled{color:var(--shade);text-shadow:1px 1px var(--hi);cursor:default}
+input[type=text],input[type=password],input[type=email],textarea,select{background:var(--field);border:2px solid;border-color:var(--shade) var(--hi) var(--hi) var(--shade);box-shadow:inset 1px 1px var(--dark);padding:3px 4px;border-radius:0;-webkit-user-select:text;user-select:text;min-width:0}
+input[type=text]:focus,input[type=password]:focus,input[type=email]:focus,textarea:focus,select:focus{outline:1px dotted var(--dark);outline-offset:1px}
+textarea{resize:none;display:block;width:100%}
+
+.win{position:absolute;display:flex;flex-direction:column;padding:2px;max-width:calc(100% - 8px);max-height:100%}
+.tb{display:flex;align-items:center;gap:4px;background:var(--title-off);color:var(--title-off-fg);padding:2px 2px 2px 4px;font-weight:bold;cursor:default;touch-action:none;flex:none}
+.win.act .tb{background:linear-gradient(90deg,var(--title),var(--title2));color:var(--title-fg)}
+.tb .tt{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.tb .dot{width:12px;height:12px;background:var(--sun);border:1px solid var(--dark);flex:none}
+.tb button{width:18px;height:16px;min-height:0;padding:0;font:bold 10px/1 var(--ui);flex:none}
+.tb button:active{padding:1px 0 0 1px}
+.wb{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;padding:8px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.row.end{justify-content:flex-end}
+.grow{flex:1;min-width:0}
+label{display:block}
+.note{color:var(--mute)}
+.fs{border:2px groove var(--lite);padding:8px;margin:0;display:flex;flex-direction:column;gap:6px}
+.fs legend{padding:0 4px}
+
+/* sign on */
+.brand{background:var(--title);color:var(--hi);padding:14px 10px;display:flex;align-items:center;gap:12px}
+.brand svg{width:56px;height:56px;flex:none}
+.brand b{font:italic bold 30px/1 var(--chat);letter-spacing:-.5px;display:block}
+.brand i{font:normal 11px var(--ui);letter-spacing:3px;text-transform:uppercase;color:var(--sun)}
+.prog{height:18px;padding:2px;display:flex;gap:2px}
+.prog s{flex:1;background:var(--title);opacity:0}
+.prog s.f{opacity:1}
+
+/* buddy list */
+.tree{flex:1;min-height:80px;overflow-y:auto;padding:2px;font-size:12px}
+.grp{font-weight:bold;padding:2px 2px;cursor:pointer;display:flex;gap:4px}
+.grp:focus-visible,.bud:focus-visible,.li:focus-visible{outline:1px dotted var(--dark)}
+.bud,.li{padding:2px 4px 2px 18px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li{padding-left:4px}
+.bud.away{font-style:italic;color:var(--mute)}
+.bud.off{color:var(--shade)}
+.bud.sel,.li.sel{background:var(--sel);color:var(--sel-fg)}
+.empty{padding:10px 6px;color:var(--mute);white-space:normal}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.grid4 .btn{padding-left:2px;padding-right:2px}
+.status{padding:2px 5px;border:1px solid;border-color:var(--shade) var(--hi) var(--hi) var(--shade);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+/* transcripts */
+.log{flex:1;min-height:60px;overflow-y:auto;padding:4px 6px;font:14px/1.35 var(--chat);-webkit-user-select:text;user-select:text;overflow-wrap:anywhere}
+.log p{margin:0 0 2px}
+.log .sn{font-weight:bold}
+.log .me{color:var(--me)} .log .them{color:var(--them)}
+.log .sys{color:var(--sys);font-style:italic;font-size:13px}
+.log .btn{font:12px var(--ui);margin-left:6px}
+.fmt{display:flex;gap:2px;align-items:center;flex-wrap:wrap}
+.fmt .btn{width:24px;padding:2px 0;font-family:var(--chat);font-size:13px}
+.fmt .btn.on{padding:3px 0 1px 1px}
+.split{flex:1;min-height:0;display:flex;gap:6px}
+.who{width:112px;flex:none;overflow-y:auto;padding:2px}
+.pre{font:12px/1.4 var(--mono);white-space:pre-wrap;padding:6px;overflow-y:auto;flex:1;-webkit-user-select:text;user-select:text}
+
+/* taskbar */
+#bar{position:fixed;left:0;right:0;bottom:0;height:calc(var(--bar) + env(safe-area-inset-bottom,0px));padding:3px 3px calc(3px + env(safe-area-inset-bottom,0px));display:flex;gap:4px;align-items:stretch;background:var(--face);border-top:2px solid var(--hi);z-index:9000}
+#start{font-weight:bold;display:flex;align-items:center;gap:5px;flex:none}
+#start i{width:14px;height:14px;background:conic-gradient(var(--me) 25%,var(--sun) 0 50%,var(--title) 0 75%,var(--desk) 0);border:1px solid var(--dark)}
+#tasks{flex:1;min-width:0;display:flex;gap:3px;overflow:hidden}
+#tasks .btn{flex:0 1 150px;min-width:36px;overflow:hidden;text-overflow:ellipsis;text-align:left}
+#tasks .btn.on{font-weight:bold}
+#tasks .btn.flash{background:var(--title);color:var(--title-fg)}
+#clock{flex:none;display:flex;align-items:center;padding:0 8px;border:1px solid;border-color:var(--shade) var(--hi) var(--hi) var(--shade);font-variant-numeric:tabular-nums}
+#menu{position:fixed;left:2px;bottom:calc(var(--bar) + env(safe-area-inset-bottom,0px));width:190px;display:flex;z-index:9001;padding:2px}
+#menu .side{width:22px;background:var(--shade);color:var(--face);font:bold 14px var(--ui);writing-mode:vertical-rl;transform:rotate(180deg);padding:6px 2px;text-align:left}
+#menu .items{flex:1;display:flex;flex-direction:column}
+#menu button{background:none;border:0;text-align:left;padding:7px 10px;cursor:pointer}
+#menu button:hover,#menu button:focus-visible{background:var(--sel);color:var(--sel-fg);outline:0}
+#menu hr{border:0;border-top:1px solid var(--shade);border-bottom:1px solid var(--hi);margin:2px 3px;width:auto}
+@media (prefers-reduced-motion:no-preference){#tasks .btn.flash{animation:fl 1s steps(1) infinite}}
+@keyframes fl{50%{background:var(--face);color:var(--text)}}
+/* web browser */
+.mbar{display:flex;gap:10px;align-items:center;padding:1px 4px}
+.throb{width:18px;height:18px;border:1px solid var(--dark);background:conic-gradient(var(--title) 25%,var(--sun) 0 50%,var(--title) 0 75%,var(--sun) 0)}
+@media (prefers-reduced-motion:no-preference){.throb.go{animation:spin .6s steps(4) infinite}.blink{animation:bl 1s steps(1) infinite}}
+@keyframes spin{to{transform:rotate(360deg)}} @keyframes bl{50%{opacity:0}}
+.tiles{display:flex;gap:6px}.tile{flex:1;padding:14px 4px;text-align:center;color:var(--shade);background:var(--face)}.tile.lit{background:var(--title);color:var(--sun);font-weight:bold}
+.web{flex:1;min-height:80px;overflow:auto;padding:10px 12px;font:15px/1.4 var(--chat);-webkit-user-select:text;user-select:text;overflow-wrap:anywhere}
+.web h1{font-size:24px;margin:0 0 8px;text-wrap:balance}.web h2{font-size:18px;margin:14px 0 6px}.web p{margin:0 0 8px}.web ul,.web ol{margin:0 0 8px;padding-left:26px}
+.web a{color:var(--link)}.web a.v{color:var(--vlink)}.web hr{border:0;border-top:1px solid var(--shade);border-bottom:1px solid var(--lite);margin:12px 0}
+.web .small{font-size:12px;color:var(--mute)}.web .btn,.web input,.web textarea,.web label{font:12px var(--ui)}
+.web .banner{background:var(--title);color:var(--hi);padding:10px;text-align:center;margin-bottom:8px}.web .banner b{display:block;font:italic bold 28px var(--chat)}.web .banner span{color:var(--sun);font-size:13px}
+.web .new{background:var(--tip);border:1px solid var(--shade);padding:4px 8px}.web .blink{color:var(--me);font-weight:bold}
+.web .chan{border-collapse:collapse}.web .chan td{border:1px solid var(--shade);padding:5px 8px;vertical-align:top;font-size:13px}
+.web .gb{border-left:3px solid var(--title);padding:2px 8px;margin-bottom:8px}
+.web.stars{background:var(--night) radial-gradient(var(--hi) 1px,transparent 1.5px) 0 0/37px 41px;color:var(--lime)}
+.web.stars a{color:var(--sun)}.web.stars a.v{color:var(--warn)}.web.stars .small{color:var(--face)}
+.web .glow{color:var(--sun);text-align:center;font-family:var(--mono)}.web .ring{text-align:center;border:1px dashed var(--lime);padding:6px}
+.web .construct{background:repeating-linear-gradient(45deg,var(--warn) 0 12px,var(--dark) 12px 24px);color:var(--hi);text-shadow:1px 1px var(--dark),-1px -1px var(--dark);font:bold 14px var(--ui);text-align:center;padding:6px;margin-bottom:10px}
+.lcd{background:var(--night);border:2px solid;border-color:var(--shade) var(--hi) var(--hi) var(--shade);padding:8px 10px;color:var(--lime);font-family:var(--mono);display:flex;flex-direction:column;gap:4px}
+.lcd-big{font:bold 34px/1 var(--mono);letter-spacing:2px}.lcd-sub{font-size:10px;letter-spacing:1px}
+.viz{display:flex;align-items:flex-end;gap:2px;height:34px}.viz i{width:5px;height:2px;background:var(--lime)}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}a.btn{color:var(--text);text-decoration:none;text-align:center;font-weight:bold}
+.web .bb{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:8px}.web .bb th{background:var(--title);color:var(--hi);text-align:left;padding:4px 6px;font:bold 12px var(--ui)}
+.web .bb td{border:1px solid var(--shade);padding:5px 7px;vertical-align:top;background:var(--field)}.web .bb tr:nth-child(even) td{background:var(--tip)}.web .bb .n{text-align:center;font-variant-numeric:tabular-nums}
+.web .bb .who2{width:96px;background:var(--lite)}.web .bb .body{white-space:pre-wrap;font-size:14px;margin-top:4px}
+.picbox{margin-top:8px;max-width:420px}.picframe{position:relative;overflow:hidden;min-height:60px;background:var(--face);line-height:0}
+.pic{display:block;width:100%;height:auto}.piccover{position:absolute;left:0;right:0;top:0;bottom:0;backdrop-filter:blur(5px) saturate(.4);border-top:2px solid var(--title)}
+.win.maxed{max-width:100%}
+body.fs #bar,body.fs #menu{display:none}body.fs #desk{bottom:0}
+.mlist{flex:0 0 38%;min-height:70px;overflow-y:auto;padding:0}.mrow{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr) 76px;gap:6px;padding:2px 6px}.mrow span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.mhead{background:var(--face);border-bottom:1px solid var(--shade);font-weight:bold;position:sticky;top:0}.mrow.unread{font-weight:bold}
+.mailread{font-size:14px}.mailread .mbody{white-space:pre-wrap;margin-top:6px}.mailread .small{font-size:12px;color:var(--mute)}.mailread hr{border:0;border-top:1px solid var(--shade);margin:6px 0}
+.gfold{display:flex;gap:10px;flex-wrap:wrap;padding:10px;background:var(--field)}.gicon{color:var(--text)}.gicon span{text-shadow:none}
+.gamecv{width:100%;aspect-ratio:320/200;max-width:100%;image-rendering:pixelated;background:#000;display:block;outline:0}.gamecv:focus-visible,.snakecv:focus-visible{outline:2px dotted var(--sun)}
+.ghud{font:bold 12px var(--mono);background:var(--night);color:var(--lime);padding:3px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gtouch{display:flex;gap:3px}.gtouch .btn{flex:1;touch-action:none;user-select:none}
+.snakecv{width:100%;max-width:100%;aspect-ratio:1;image-rendering:pixelated;display:block}
+.mgrid{display:grid;grid-template-columns:repeat(9,1fr);padding:0;background:var(--shade);gap:0}
+.mc{aspect-ratio:1;min-width:0;padding:0;font:bold 13px var(--ui);background:var(--face);border:2px solid;border-color:var(--hi) var(--shade) var(--shade) var(--hi);cursor:pointer}
+.mc.open{border:1px solid var(--shade);background:var(--lite);cursor:default}.mc.flag{color:var(--me)}.mc.mine{background:var(--lite)}.mc.boom{background:var(--me)}
+.mlcd{padding:2px 6px;font:bold 18px var(--mono);color:var(--me);min-width:48px;text-align:center}
+</style>
+
+<div id="desk">
+  <div id="icons">
+    <button class="dicon" id="ic-msgr" type="button"><svg viewBox="0 0 16 16"><path d="M1 2h14v9H7l-3 3v-3H1z" fill="#ffd400" stroke="#0a0a0a"/><rect x="4" y="6" width="2" height="2" fill="#0a0a0a"/><rect x="7" y="6" width="2" height="2" fill="#0a0a0a"/><rect x="10" y="6" width="2" height="2" fill="#0a0a0a"/></svg><span>DialTone Messenger</span></button>
+    <button class="dicon" id="ic-chat" type="button"><svg viewBox="0 0 16 16"><rect x="3" y="1" width="10" height="14" fill="#c0c0c0" stroke="#0a0a0a"/><rect x="5" y="3" width="6" height="12" fill="#804000" stroke="#0a0a0a"/><rect x="9" y="8" width="1" height="2" fill="#ffd400"/></svg><span>Chat Rooms</span></button>
+    <button class="dicon" id="ic-web" type="button"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="#1084d0" stroke="#0a0a0a"/><path d="M4 5c2 1 3-1 4 1s-2 2-1 4 3 0 4 2M2 8h3M11 4l2 2" stroke="#33ff66" fill="none"/></svg><span>WebSurfer</span></button>
+    <button class="dicon" id="ic-radio" type="button"><svg viewBox="0 0 16 16"><path d="M4 4l8-3" stroke="#0a0a0a"/><rect x="1" y="4" width="14" height="10" fill="#c0c0c0" stroke="#0a0a0a"/><circle cx="5" cy="9" r="2.5" fill="#0a0a0a"/><rect x="9" y="6" width="4" height="2" fill="#33ff66" stroke="#0a0a0a" stroke-width=".5"/><rect x="9" y="10" width="4" height="1" fill="#0a0a0a"/></svg><span>Radio</span></button>
+    <button class="dicon" id="ic-mail" type="button"><svg viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="10" fill="#ffffff" stroke="#0a0a0a"/><path d="M1 3l7 6 7-6" fill="none" stroke="#0a0a0a"/><rect x="11" y="4" width="3" height="3" fill="#cc0000"/></svg><span>DialMail</span></button>
+    <button class="dicon" id="ic-games" type="button"><svg viewBox="0 0 16 16"><path d="M1 4h5l1 2h8v8H1z" fill="#ffd400" stroke="#0a0a0a"/><rect x="5" y="8" width="6" height="4" rx="1" fill="#404040"/><rect x="6" y="9.5" width="2" height=".8" fill="#ffffff"/><rect x="6.6" y="9" width=".8" height="2" fill="#ffffff"/><circle cx="9.6" cy="10" r=".6" fill="#cc0000"/></svg><span>Games</span></button>
+    <button class="dicon" id="ic-read" type="button"><svg viewBox="0 0 16 16"><rect x="2" y="1" width="12" height="14" fill="#ffffff" stroke="#0a0a0a"/><path d="M4 4h8M4 6h8M4 8h8M4 10h5" stroke="#000080" fill="none"/></svg><span>Read Me.txt</span></button>
+  </div>
+</div>
+<div id="menu" class="out" hidden>
+  <div class="side">DialTone 95</div>
+  <div class="items">
+    <button type="button" data-a="msgr">Messenger</button>
+    <button type="button" data-a="chat">Chat Rooms</button>
+    <button type="button" data-a="web">WebSurfer</button>
+    <button type="button" data-a="radio">Radio</button>
+    <button type="button" data-a="mail">DialMail</button>
+    <button type="button" data-a="games">Games</button>
+    <button type="button" data-a="sound">Sounds</button>
+    <button type="button" data-a="read">Read Me</button>
+    <hr>
+    <button type="button" data-a="off">Sign Off</button>
+  </div>
+</div>
+<div id="bar">
+  <button class="btn" id="start" type="button"><i></i>Start</button>
+  <div id="tasks"></div>
+  <div id="clock"></div>
+</div>
+
+<script>
+(()=>{'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+function h(tag,attrs,...kids){const e=document.createElement(tag);for(const k in attrs||{}){const v=attrs[k];if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else if(v!==false&&v!=null)e.setAttribute(k,v===true?'':v);}for(const k of kids.flat(Infinity)){if(k==null||k===false)continue;e.append(k.nodeType?k:document.createTextNode(k));}return e;}
+const desk=$('#desk'),tasks=$('#tasks');
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ---------- sounds (all synthesized) ---------- */
+let ac=null,soundOn=store.get('dt-sound','1')==='1';
+function actx(){if(!ac){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;ac=new C();}if(ac.state==='suspended')ac.resume();return ac;}
+function tone(f,t,d,type,g,f2,flat){const o=ac.createOscillator(),v=ac.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(g,t+.008);if(flat){v.gain.setValueAtTime(g,t+d-.02);v.gain.linearRampToValueAtTime(0,t+d);}else v.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(v).connect(ac.destination);o.start(t);o.stop(t+d+.03);}
+function noise(t,d,freq,q,g,type){const n=Math.ceil(ac.sampleRate*d),b=ac.createBuffer(1,n,ac.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;const s=ac.createBufferSource(),fl=ac.createBiquadFilter(),v=ac.createGain();s.buffer=b;fl.type=type||'bandpass';fl.frequency.value=freq;fl.Q.value=q;v.gain.setValueAtTime(g,t);v.gain.exponentialRampToValueAtTime(.001,t+d);s.connect(fl).connect(v).connect(ac.destination);s.start(t);}
+const SND={
+  imIn(t){tone(784,t,.09,'square',.06);tone(1047,t+.09,.09,'square',.06);tone(1568,t+.18,.25,'triangle',.14);},
+  imOut(t){tone(1175,t,.07,'triangle',.1);tone(880,t+.07,.15,'triangle',.1);},
+  doorOpen(t){tone(160,t,.45,'sawtooth',.05,520);tone(171,t+.03,.42,'square',.02,565);noise(t+.46,.07,1800,1,.2);},
+  doorClose(t){tone(420,t,.2,'sawtooth',.04,180);noise(t+.2,.2,170,.7,.6,'lowpass');tone(72,t+.2,.22,'sine',.3,40);},
+  welcome(t){[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.11,.4,'triangle',.11));},
+  chat(t){tone(1319,t,.35,'sine',.14);tone(1976,t,.3,'sine',.04);},
+  mail(t){[784,988,1175,1568].forEach((f,i)=>tone(f,t+i*.09,.35,'triangle',.1));tone(2093,t+.4,.6,'sine',.06);},
+  error(t){[311,392,466].forEach(f=>{tone(f,t,.5,'triangle',.09);tone(f*2,t,.25,'sine',.03);});tone(98,t,.4,'sine',.12);},
+  modem(t){
+    tone(350,t,.5,'sine',.05,0,1);tone(440,t,.5,'sine',.05,0,1);
+    const R=[697,770,852,941],C=[1209,1336,1477];let x=t+.55;
+    for(const d of [4,1,7,2,8,0,5]){tone(R[d%4],x,.07,'sine',.07,0,1);tone(C[d%3],x,.07,'sine',.07,0,1);x+=.1;}
+    x+=.15;tone(2100,x,.45,'sine',.07,0,1);x+=.5;
+    for(let i=0;i<6;i++)tone(i%2?1180:980,x+i*.06,.06,'square',.03,0,1);x+=.38;
+    noise(x,1.1,1800,2.5,.22);tone(1200,x,.5,'sawtooth',.02,2400);tone(2400,x+.5,.5,'sawtooth',.02,600);
+    noise(x+1.0,.5,3000,.6,.1);
+  }
+};
+function play(n,force){if(!soundOn&&!force)return;if(!actx())return;try{SND[n](ac.currentTime+.03)}catch(e){}}
+
+/* ---------- window manager ---------- */
+const wins=new Map();let zTop=10,casc=0,activeId=null;
+function openWin(id,o){
+  if(wins.has(id)){const w=wins.get(id);if(!o.quiet)focusWin(id);return w;}
+  const tt=h('span',{class:'tt',text:o.title}),body=h('div',{class:'wb'});
+  const el=h('section',{class:'win out',role:'dialog','aria-label':o.title},
+    h('header',{class:'tb'},h('span',{class:'dot'}),tt,
+      h('button',{class:'btn',type:'button','aria-label':'Minimize',text:'_',onclick:()=>minWin(id)}),
+      o.onFull?h('button',{class:'btn',type:'button','aria-label':'Full screen',title:'Full screen',text:'□',onclick:()=>o.onFull()}):null,
+      h('button',{class:'btn',type:'button','aria-label':'Close',text:'×',onclick:()=>closeWin(id)})),body);
+  const dw=desk.clientWidth,dh=desk.clientHeight,ww=Math.min(o.w||300,dw-8);
+  el.style.width=ww+'px';if(o.h)el.style.height=Math.min(o.h,dh-4)+'px';
+  let x=o.x,y=o.y;if(x==null){x=dw<560?4:110+casc*26;y=dw<560?4+casc*24:20+casc*26;casc=(casc+1)%7;}
+  if(o.center){x=(dw-ww)/2;y=Math.max(4,(dh-(o.h||260))/2);}
+  x=Math.max(0,Math.min(x,dw-ww-4));y=Math.max(0,Math.min(y,dh-40));
+  el.style.left=x+'px';el.style.top=y+'px';
+  const tbtn=h('button',{class:'btn',type:'button',text:o.title,onclick:()=>{const w=wins.get(id);if(w.min){w.min=false;el.hidden=false;focusWin(id);}else if(activeId===id)minWin(id);else focusWin(id);}});
+  tasks.append(tbtn);desk.append(el);
+  const w={id,el,body,tt,tbtn,o,min:false,toggleMax(){if(w.max){Object.assign(el.style,w.max);w.max=null;}else{w.max={left:el.style.left,top:el.style.top,width:el.style.width,height:el.style.height};Object.assign(el.style,{left:'0px',top:'0px',width:desk.clientWidth+'px',height:desk.clientHeight+'px'});}el.classList.toggle('maxed',!!w.max);},setTitle(s){tt.textContent=s;tbtn.textContent=s;el.setAttribute('aria-label',s);}};
+  wins.set(id,w);
+  el.addEventListener('pointerdown',()=>focusWin(id),true);
+  const tb=el.firstChild;let drag=null;
+  tb.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;drag={x:e.clientX-el.offsetLeft,y:e.clientY-el.offsetTop};tb.setPointerCapture(e.pointerId);});
+  tb.addEventListener('pointermove',e=>{if(!drag)return;const L=Math.max(60-el.offsetWidth,Math.min(e.clientX-drag.x,desk.clientWidth-60)),T=Math.max(0,Math.min(e.clientY-drag.y,desk.clientHeight-22));el.style.left=L+'px';el.style.top=T+'px';});
+  const end=()=>{drag=null};tb.addEventListener('pointerup',end);tb.addEventListener('pointercancel',end);
+  if(o.quiet){el.style.zIndex=++zTop;tbtn.classList.add('flash');}else focusWin(id);
+  return w;
+}
+addEventListener('resize',()=>{for(const w of wins.values())if(w.max)Object.assign(w.el.style,{width:desk.clientWidth+'px',height:desk.clientHeight+'px'});});
+function focusWin(id){const w=wins.get(id);if(!w)return;if(w.min){w.min=false;w.el.hidden=false;}activeId=id;w.el.style.zIndex=++zTop;for(const x of wins.values()){x.el.classList.toggle('act',x.id===id);x.tbtn.classList.toggle('on',x.id===id);}w.tbtn.classList.remove('flash');}
+function minWin(id){const w=wins.get(id);if(!w)return;w.min=true;w.el.hidden=true;w.el.classList.remove('act');w.tbtn.classList.remove('on');if(activeId===id)activeId=null;}
+function closeWin(id){const w=wins.get(id);if(!w)return;wins.delete(id);w.el.remove();w.tbtn.remove();if(activeId===id)activeId=null;if(w.o.onClose)w.o.onClose();}
+function msgBox(title,text,snd){if(snd!==false)play('error');const id='msg'+Date.now()+Math.random();const w=openWin(id,{title,w:300,center:true});const ok=h('button',{class:'btn',type:'button',text:'OK',onclick:()=>closeWin(id)});w.body.append(h('div',{text,style:'padding:6px 2px;white-space:pre-wrap'}),h('div',{class:'row end'},ok));ok.focus();}
+
+/* ---------- state ---------- */
+let db=null,room=null,userCap=null,uid=null,cuid=null,live=false;
+/* Several DialTone accounts per Claude sign-in: account ids are <claude id> or <claude id>~<n>.
+   Extra accounts live under the owner's own storage, so the page's access rules still guard them. */
+const validAid=(a,by)=>typeof a==='string'&&!!by&&(a===by||(a.startsWith(by+'~')&&/^~\d{1,3}$/.test(a.slice(by.length))));
+const ownAid=a=>!!cuid&&(a===cuid||validAid(a,cuid));
+function mapPath(p){const s=p.split('/');
+  if(s[0]==='data'&&s[1]==='users'&&s[2]&&s[2].includes('~')&&s.length>=4){const i=s[2].indexOf('~');return ['data','users',s[2].slice(0,i),s[3]+'@'+s[2].slice(i+1),...s.slice(4)].join('/');}
+  if(s[1]&&s[1].includes('~')){return [s[0],s[1].split('~')[0],'alt',s[1],...s.slice(2)].join('/');}
+  return p;}
+const ALTCOLS=new Set(['accounts','bposts','forums','guestbook','mailkeys']);
+function wrapDb(raw){return{
+  doc(p){const d=raw.doc(mapPath(p)),sg=p.split('/');if(!(sg.length===2&&ALTCOLS.has(sg[0])&&sg[1].includes('~')))return d;
+    const top=raw.doc(sg[0]+'/'+sg[1].split('~')[0]),touch=()=>top.get().then(x=>x.exists?top.update({altsAt:Date.now()}):top.set({altsAt:Date.now()})).catch(()=>{});
+    return{get:()=>d.get(),set:x=>d.set(x).then(()=>touch()),update:x=>d.update(x).then(()=>touch()),delete:()=>d.delete()};},
+  collection(p){const c=raw.collection(mapPath(p));if(!ALTCOLS.has(p))return c;
+    const get=async()=>{const s=await c.get(),docs=[...s.docs];await Promise.all(s.docs.map(async d=>{try{const a=await raw.collection(p+'/'+d.id+'/alt').get();for(const x of a.docs)if(validAid(x.id,d.id))docs.push(x);}catch(e){}}));return{docs};};
+    return{get,onSnapshot(cb,err){let t=0;const run=()=>get().then(cb).catch(e=>err&&err(e));return c.onSnapshot(()=>{clearTimeout(t);t=setTimeout(run,120);},err);}};}};}
+function wrapRoom(r){
+  const fix=m=>{const d=m.data,a=d&&typeof d==='object'&&validAid(d.from,m.by)?d.from:m.by;return{...m,by:a,isMe:!!a&&a===uid};};
+  const fixPeers=c=>({...c,peers:c.peers.map(p=>{const a=p.presence&&validAid(p.presence.aid,p.by)?p.presence.aid:p.by;return{...p,by:a,isMe:!!a&&a===uid};})});
+  const w=x=>({emit:(t,d)=>x.emit(t,d&&typeof d==='object'?{...d,from:uid}:d),on:(t,fn,e)=>x.on(t,m=>fn(fix(m)),e),presence:p=>x.presence({...p,aid:p.on?uid:null}),onPeers:(fn,e)=>x.onPeers(c=>fn(fixPeers(c)),e),leave:()=>x.leave(),connected:()=>x.connected()});
+  const o=w(r);o.join=async n=>w(await r.join(n));return o;}
+async function loadSecret(a){try{const s=await db.doc('data/users/'+a+'/account').get(),x=s.exists?s.data():null;return x&&typeof x.salt==='string'&&typeof x.hash==='string'?x:null;}catch(e){return null;}}
+async function loadBuddies(){buddies={groups:{Buddies:[],Family:[],'Co-Workers':[]},blocked:[]};
+  try{const s=await db.doc('data/users/'+uid+'/buddylist').get();const x=s.exists?s.data():null;if(x&&x.groups){for(const g of GROUPS)buddies.groups[g]=Array.isArray(x.groups[g])?x.groups[g].filter(v=>typeof v==='string'):[];buddies.blocked=Array.isArray(x.blocked)?x.blocked.filter(v=>typeof v==='string'):[];}}catch(e){}}
+const me={sn:'',on:false,away:null,warn:0};
+const accounts=new Map();           // uid -> {sn,key,created,profile}
+let online=new Map();               // uid -> {away,warn,since}
+let buddies={groups:{Buddies:[],Family:[],'Co-Workers':[]},blocked:[]};
+let rooms=[];                       // [{id,name}]
+const GROUPS=['Buddies','Family','Co-Workers'];
+const collapsed=new Set();let selBuddy=null,armedAt=Infinity;
+const gotFrom=new Set(),sentTo=new Set(),lastAuto=new Map(),chats=new Map();
+const snKey=s=>String(s).toLowerCase().replace(/\s+/g,'');
+const snOf=id=>id===uid&&me.sn?me.sn:(accounts.get(id)?.sn||'Unknown');
+const allBuddyIds=()=>GROUPS.flatMap(g=>buddies.groups[g]||[]);
+const clip=(s,n)=>typeof s==='string'?s.slice(0,n):'';
+
+let accountsReady;
+const boot=(async()=>{
+  const use=n=>window.claude&&window.claude.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
+  [db,room,userCap]=await Promise.all([use('db'),use('room'),use('user')]);
+  uid=userCap?await userCap.id():null;cuid=uid;if(db&&cuid)db=wrapDb(db);if(room)room=wrapRoom(room);
+  live=!!(db&&uid);
+  if(db){
+    accountsReady=new Promise(res=>{const t=setTimeout(res,5000);
+      db.collection('accounts').onSnapshot(s=>{accounts.clear();for(const d of s.docs){const x=d.data()||{};if(typeof x.sn==='string'&&x.sn)accounts.set(d.id,{sn:clip(x.sn,16),key:snKey(x.sn),created:+x.created||0,profile:clip(x.profile,600)});}clearTimeout(t);res();refreshAll();},()=>{clearTimeout(t);res();});});
+    db.collection('rooms').onSnapshot(s=>{rooms=s.docs.map(d=>({id:d.id,name:clip((d.data()||{}).name,40)||d.id})).filter(r=>/^[a-z0-9][a-z0-9-]{0,39}$/.test(r.id));renderRooms();},()=>{});
+    await accountsReady;
+  }
+  if(!uid)uid='local';
+  if(live)await loadBuddies();
+  if(live){try{const s=await db.doc('data/users/'+uid+'/account').get();const x=s.exists?s.data():null;if(x&&typeof x.salt==='string'&&typeof x.hash==='string')secret=x;}catch(e){}}
+  if(room){
+    room.onPeers(c=>onLobby(c.peers),()=>{});
+    room.on('im',onIM,()=>{});
+    room.on('warn',onWarn,()=>{});
+    room.on('mail',onMailPing,()=>{});
+  }
+  const f=$('#so-name');if(f&&!f.value&&accounts.get(uid))f.value=accounts.get(uid).sn;
+  const n=$('#so-note');if(n)n.textContent=live?(secret?'Welcome back. Enter your password to sign on.':'New here? Press Get a Screen Name to create your account before signing on.'):'Demo mode: nobody else can see you from this view, and accounts last only until you close the page.';
+})();
+
+let secret=null;const hist=new Map(),HMAX=150;
+const hex=a=>[...a].map(b=>b.toString(16).padStart(2,'0')).join('');
+async function pwHash(pw,saltHex){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);const salt=Uint8Array.from(saltHex.match(/../g).map(x=>parseInt(x,16)));return hex(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},k,256)));}
+function histGet(key){let x=hist.get(key);if(!x){x={msgs:[],busy:false,dirty:false};x.ready=live?db.doc('data/users/'+uid+'/'+key).get().then(s=>{const d=s.exists?s.data():null;if(d&&Array.isArray(d.msgs))x.msgs=d.msgs.filter(m=>m&&typeof m.t==='string').slice(-HMAX);}).catch(()=>{}):Promise.resolve();hist.set(key,x);}return x;}
+function histAdd(key,m){if(!live)return;const x=histGet(key);x.ready.then(async()=>{x.msgs.push(m);if(x.msgs.length>HMAX)x.msgs.splice(0,x.msgs.length-HMAX);if(x.busy){x.dirty=true;return;}x.busy=true;do{x.dirty=false;try{await db.doc('data/users/'+uid+'/'+key).set({msgs:x.msgs});}catch(e){}}while(x.dirty);x.busy=false;});}
+function showHist(log,key,who){const old=h('div');log.prepend(old);histGet(key).ready.then(()=>{const ms=hist.get(key).msgs;if(!ms.length)return;for(const m of ms){if(m.k==='auto')old.append(mkLine(null,'',(m.o?'Auto response sent: ':'Auto response: ')+m.t));else{const mine=m.o||m.by===uid;old.append(mkLine(who(m),mine?'me':'them',clip(m.t,800),cleanFmt(m.f)));}}const last=ms[ms.length-1].ts;old.append(mkLine(null,'','— Saved conversation'+(last?', last message '+new Date(last).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'')+' —'));log.scrollTop=log.scrollHeight;});}
+let saveChain=Promise.resolve();
+function saveBuddies(){if(!live)return;const data=JSON.parse(JSON.stringify(buddies));saveChain=saveChain.then(()=>db.doc('data/users/'+uid+'/buddylist').set(data)).catch(()=>{});}
+function setPresence(){if(room)room.presence({on:me.on?1:null,away:me.on?me.away:null,warn:me.on?me.warn:null,since:me.on?Date.now():null}).catch(()=>{});else onLobby([]);}
+
+function onLobby(peers){
+  const next=new Map();
+  for(const p of peers){if(p.kind!=='viewer'||!p.by)continue;const pr=p.presence||{};if(!pr.on)continue;next.set(p.by,{away:typeof pr.away==='string'?pr.away.slice(0,300):null,warn:Math.max(0,Math.min(100,+pr.warn||0)),since:+pr.since||0});}
+  if(!room&&me.on)next.set(uid,{away:me.away,warn:me.warn,since:0});
+  if(me.on&&Date.now()>armedAt){let a=false,l=false;for(const b of allBuddyIds()){if(b===uid)continue;if(next.has(b)&&!online.has(b))a=true;if(!next.has(b)&&online.has(b))l=true;}if(a)play('doorOpen');else if(l)play('doorClose');}
+  online=next;refreshAll();
+}
+function refreshAll(){renderBuddies();renderDirectory();for(const w of wins.values())if(w.refresh)w.refresh();}
+
+/* ---------- sign on ---------- */
+function showSignOn(){
+  const w=openWin('signon',{title:'DialTone Sign On',w:290,x:desk.clientWidth<560?4:140,y:30});
+  if(w.body.firstChild)return;
+  w.body.style.padding='4px';
+  const name=h('input',{type:'text',id:'so-name',maxlength:'16',autocomplete:'off',spellcheck:'false',style:'width:100%'});
+  if(accounts.get(uid))name.value=accounts.get(uid).sn;
+  const pass=h('input',{type:'password',id:'so-pass',maxlength:'64',autocomplete:'current-password',style:'width:100%'});
+  const snd=h('input',{type:'checkbox',id:'so-snd'});snd.checked=soundOn;
+  const go=h('button',{class:'btn',type:'submit',text:'Sign On',style:'min-width:80px'});
+  const note=h('div',{class:'note',id:'so-note',text:'Looking up your account…'});
+  const form=h('form',{style:'display:flex;flex-direction:column;gap:8px;padding:8px 6px'},
+    h('label',{for:'so-name'},h('b',{text:'Screen Name'})),name,h('label',{for:'so-pass'},h('b',{text:'Password'})),pass,note,
+    h('label',{class:'row',for:'so-snd'},snd,'Play sounds (dial-up, doors, IM chimes)'),
+    h('div',{class:'row end'},h('button',{class:'btn',type:'button',text:'Get a Screen Name',onclick:showRegister}),go),
+    h('div',{class:'note',text:'Version 1.0.95',style:'text-align:center'}));
+  const steps=h('div',{style:'padding:14px 8px;display:flex;flex-direction:column;gap:8px',hidden:true});
+  const stepTxt=h('div',{text:''}),prog=h('div',{class:'prog in'},Array.from({length:14},()=>h('s')));
+  steps.append(stepTxt,prog);
+  w.body.append(h('div',{class:'brand'},
+    (()=>{const d=h('div');d.innerHTML='<svg viewBox="0 0 16 16"><path d="M1 2h14v9H7l-3 3v-3H1z" fill="#ffd400" stroke="#0a0a0a"/><rect x="4" y="6" width="2" height="2" fill="#0a0a0a"/><rect x="7" y="6" width="2" height="2" fill="#0a0a0a"/><rect x="10" y="6" width="2" height="2" fill="#0a0a0a"/></svg>';return d.firstChild;})(),
+    h('div',null,h('b',{text:'DialTone'}),h('i',{text:'Messenger'}))),form,steps);
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const sn=name.value.trim().replace(/\s+/g,' ');
+    soundOn=snd.checked;store.set('dt-sound',soundOn?'1':'0');actx();
+    if(!/^[A-Za-z][A-Za-z0-9 ]{2,15}$/.test(sn))return msgBox('DialTone','Screen names are 3 to 16 characters, start with a letter, and use only letters, numbers and spaces.');
+    const pw=pass.value;if(pw.length<6)return msgBox('DialTone','Passwords are at least 6 characters.');
+    const fail=m=>{go.disabled=false;go.textContent='Sign On';msgBox('DialTone',m);};
+    go.disabled=true;go.textContent='Checking…';
+    await boot;
+    {
+      const key=snKey(sn),mine=accounts.get(uid);
+      if(!window.crypto||!crypto.subtle)return fail('This browser cannot check passwords securely. Try a current browser.');
+      const pick=live?[...accounts].find(([a,x])=>x.key===key&&ownAid(a)):(mine&&mine.key===key?[uid,mine]:null);
+      if(!pick)return fail(live&&[...accounts].some(([,x])=>x.key===key)?'The screen name "'+sn+'" belongs to someone else. Sign on with one of your own screen names.':'No account was found. Press "Get a Screen Name" to create one before you sign on.');
+      const sec=live?await loadSecret(pick[0]):secret;
+      if(!sec)return fail('No account was found. Press "Get a Screen Name" to create one before you sign on.');
+      if(await pwHash(pw,sec.salt)!==sec.hash)return fail('The password you entered is incorrect. Please try again.');
+      uid=pick[0];secret=sec;hist.clear();if(live)await loadBuddies();
+    }
+    go.disabled=false;go.textContent='Sign On';
+    form.hidden=true;steps.hidden=false;play('modem');
+    const cells=[...prog.children];cells.forEach(c=>c.classList.remove('f'));
+    const total=soundOn?3300:1400,t0=Date.now();
+    const labels=['Step 1: Dialing…','Step 2: Connecting…','Step 3: Starting services…'];
+    const tick=setInterval(()=>{const p=Math.min(1,(Date.now()-t0)/total);cells.forEach((c,i)=>c.classList.toggle('f',i<p*cells.length));stepTxt.textContent=labels[Math.min(2,Math.floor(p*3))];},90);
+    await new Promise(r=>setTimeout(r,Math.max(0,total-(Date.now()-t0))));
+    clearInterval(tick);
+    me.sn=sn;me.on=true;me.away=null;me.warn=0;armedAt=Date.now()+3000;
+    closeWin('signon');setPresence();showBuddyList();play('welcome');mailInit().then(()=>{mailOn=true;if(wins.has('mail')&&mailEls&&mailEls.signin){mailEls=null;showMail();}return mailRefresh();}).catch(()=>{});
+  });
+  name.focus();
+}
+function showRegister(){
+  const w=openWin('reg',{title:'Get a Screen Name',w:290,center:true});if(w.body.firstChild)return;
+  const F=(id,type,ac)=>h('input',{type,id,maxlength:type==='text'?'16':type==='email'?'120':'64',autocomplete:ac,spellcheck:'false',style:'width:100%'});
+  const re=F('reg-email','email','email'),rn=F('reg-name','text','off'),rp=F('reg-pass','password','new-password'),rp2=F('reg-pass2','password','new-password');
+  const go=h('button',{class:'btn',type:'submit',text:'Create Account',style:'font-weight:bold'});
+  const form=h('form',{style:'display:flex;flex-direction:column;gap:6px'},
+    h('label',{for:'reg-name',text:'Choose a screen name (3 to 16 letters, numbers, spaces):'}),rn,
+    h('label',{for:'reg-email',text:'Your email address:'}),re,
+    h('label',{for:'reg-pass',text:'Choose a password (6 or more characters):'}),rp,
+    h('label',{for:'reg-pass2',text:'Type the password again:'}),rp2,
+    h('div',{class:'note',text:'Your email is kept on file for the owner of this service. Other members cannot see it. Use a password you do not use anywhere else. It cannot be reset if you forget it.'}),
+    h('div',{class:'row end'},go,h('button',{class:'btn',type:'button',text:'Cancel',onclick:()=>closeWin('reg')})));
+  w.body.append(form);rn.focus();
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();actx();
+    const sn=rn.value.trim().replace(/\s+/g,' '),pw=rp.value,key=snKey(sn),email=re.value.trim();
+    if(!/^[A-Za-z][A-Za-z0-9 ]{2,15}$/.test(sn))return msgBox('Get a Screen Name','Screen names are 3 to 16 characters, start with a letter, and use only letters, numbers and spaces.');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return msgBox('Get a Screen Name','Enter a valid email address, like name@example.com.');
+    if(pw.length<6)return msgBox('Get a Screen Name','Passwords are at least 6 characters.');
+    if(pw!==rp2.value)return msgBox('Get a Screen Name','The two passwords do not match. Type them again.');
+    if(!window.crypto||!crypto.subtle)return msgBox('Get a Screen Name','This browser cannot store passwords securely. Try a current browser.');
+    go.disabled=true;go.textContent='Creating…';
+    const done=m=>{go.disabled=false;go.textContent='Create Account';if(m)msgBox('Get a Screen Name',m);};
+    await boot;
+    const mine=accounts.get(uid);
+    for(const [id,a] of accounts)if(a.key===key&&!(id===cuid&&!(await loadSecret(id))))return done('The screen name "'+sn+'" is already taken. Please choose another.');
+    let aid=uid;
+    if(live){const own=[...accounts.keys()].filter(ownAid);
+      if(own.includes(cuid)&&(await loadSecret(cuid))){if(own.length>=10)return done('You have reached the limit of 10 screen names.');let n=2;while(own.includes(cuid+'~'+n))n++;aid=cuid+'~'+n;}else aid=cuid;}
+    else if(secret&&mine)return done('Demo mode allows one account. Open this page signed in to create more.');
+    try{
+      const salt=hex(crypto.getRandomValues(new Uint8Array(16))),sec={salt,hash:await pwHash(pw,salt),created:Date.now()},ex=accounts.get(aid);
+      if(live){await db.doc('emails/'+aid).set({email,created:Date.now()});await db.doc('data/users/'+aid+'/account').set(sec);
+        if(!ex)await db.doc('accounts/'+aid).set({sn,created:Date.now(),profile:''});else if(ex.sn!==sn)await db.doc('accounts/'+aid).update({sn});}
+      else secret=sec;
+      accounts.set(aid,{sn,key,created:ex?ex.created:Date.now(),profile:ex?ex.profile:''});
+    }catch(err){return done(err&&err.code==='invalid_argument'?'You have view-only access to this page. Ask its owner to make you a Contributor, then try again.':'The account service is not answering. Please try again in a moment.');}
+    closeWin('reg');const f=$('#so-name');if(f)f.value=sn;const n=$('#so-note');if(n)n.textContent='Account created. Enter your password to sign on.';const p2=$('#so-pass');if(p2)p2.focus();
+    play('chat');msgBox('Welcome to DialTone','Your account "'+sn+'" was created.\nEnter your password and press Sign On.',false);
+  });
+}
+function signOff(){
+  if(!me.on)return;me.on=false;me.away=null;mailOn=false;mailMe=null;mail.msgs.clear();mail.unread=0;pairCache.clear();setPresence();
+  for(const c of chats.values())c.leave();chats.clear();hist.clear();gotFrom.clear();sentTo.clear();lastAuto.clear();selBuddy=null;if(cuid){uid=cuid;online=new Map();}
+  for(const id of [...wins.keys()])if(id!=='readme'&&id!=='web'&&id!=='radio')closeWin(id);
+  play('doorClose');showSignOn();
+}
+
+/* ---------- buddy list ---------- */
+let treeEl=null,statusEl=null,awayBtn=null;
+function showBuddyList(){
+  if(!me.on)return showSignOn();
+  const dw=desk.clientWidth;
+  const w=openWin('buddies',{title:me.sn+"'s Buddy List",w:210,h:Math.min(430,desk.clientHeight-10),x:dw<560?4:dw-230,y:10,onClose:()=>{treeEl=null;}});
+  if(w.body.firstChild)return;
+  w.body.style.padding='4px';w.body.style.gap='4px';
+  treeEl=h('div',{class:'tree in',role:'tree'});
+  statusEl=h('div',{class:'status'});
+  awayBtn=h('button',{class:'btn',type:'button',text:'Away',onclick:toggleAway});
+  const B=(t,f)=>h('button',{class:'btn',type:'button',text:t,onclick:f});
+  const need=f=>()=>{if(!selBuddy)return msgBox('Buddy List','Select a buddy in the list first.');f(selBuddy);};
+  w.body.append(treeEl,h('div',{class:'grid4'},B('IM',need(openIM)),B('Info',()=>showInfo(selBuddy||uid)),B('Chat',showRooms),B('Add',showAdd),B('Remove',need(removeBuddy)),awayBtn,B('Sounds',showSounds),B('Sign Off',signOff)),statusEl);
+  renderBuddies();
+}
+function renderBuddies(){
+  if(!treeEl)return;treeEl.textContent='';
+  statusEl.textContent=(me.away?'Away':'Online')+' as '+me.sn+(room?'':' (demo mode)')+(mail.unread?' · '+mail.unread+' new mail':'');
+  awayBtn.textContent=me.away?"I'm Back":'Away';
+  const all=allBuddyIds();
+  if(!all.length){treeEl.append(h('div',{class:'empty',text:'Your Buddy List is empty. Press Add to find people by screen name. Buddies appear here when they sign on.'}));return;}
+  const item=(id,cls)=>{const st=online.get(id);const e=h('div',{class:'bud '+cls+(selBuddy===id?' sel':''),role:'treeitem',tabindex:'0',text:snOf(id)+(st&&st.away?'  (away)':''),title:st&&st.away?st.away:''});
+    const pick=()=>{if(selBuddy===id)return openIM(id);selBuddy=id;renderBuddies();};
+    e.addEventListener('click',pick);e.addEventListener('keydown',ev=>{if(ev.key==='Enter')openIM(id);});return e;};
+  const off=[];
+  for(const g of GROUPS){const ids=buddies.groups[g]||[];const on=ids.filter(i=>online.has(i));off.push(...ids.filter(i=>!online.has(i)));
+    treeEl.append(grpRow(g,on.length+'/'+ids.length));
+    if(!collapsed.has(g))for(const i of on)treeEl.append(item(i,online.get(i).away?'away':''));}
+  treeEl.append(grpRow('Offline',off.length+'/'+all.length));
+  if(!collapsed.has('Offline'))for(const i of off)treeEl.append(item(i,'off'));
+}
+function grpRow(g,count){const tog=()=>{collapsed.has(g)?collapsed.delete(g):collapsed.add(g);renderBuddies();};return h('div',{class:'grp',tabindex:'0',role:'treeitem',onclick:tog,onkeydown:e=>{if(e.key==='Enter')tog();}},h('span',{text:collapsed.has(g)?'▸':'▾'}),g+' ('+count+')');}
+function removeBuddy(id){for(const g of GROUPS)buddies.groups[g]=(buddies.groups[g]||[]).filter(x=>x!==id);if(selBuddy===id)selBuddy=null;saveBuddies();renderBuddies();}
+function toggleAway(){
+  if(me.away){me.away=null;setPresence();renderBuddies();return;}
+  const w=openWin('away',{title:'Set Away Message',w:280,center:true});if(w.body.firstChild)return;
+  const ta=h('textarea',{id:'away-text',rows:'4',maxlength:'300'});ta.value=store.get('dt-away','I am away from my computer right now.');
+  w.body.append(h('label',{for:'away-text',text:'Buddies who IM you will get this auto response:'}),ta,h('div',{class:'row end'},h('button',{class:'btn',type:'button',text:"I'm Away",onclick:()=>{me.away=ta.value.trim().slice(0,300)||'I am away from my computer right now.';store.set('dt-away',me.away);setPresence();renderBuddies();closeWin('away');}}),h('button',{class:'btn',type:'button',text:'Cancel',onclick:()=>closeWin('away')})));
+  ta.focus();
+}
+
+/* ---------- add buddy / directory ---------- */
+let dirEl=null,addName=null;
+function showAdd(){
+  const w=openWin('add',{title:'Add a Buddy',w:270,h:330,onClose:()=>{dirEl=null}});if(w.body.firstChild)return;
+  addName=h('input',{type:'text',id:'add-name',maxlength:'16',class:'grow',autocomplete:'off'});
+  const grp=h('select',{id:'add-group'},GROUPS.map(g=>h('option',{text:g})));
+  dirEl=h('div',{class:'tree in'});
+  const add=()=>{const key=snKey(addName.value);if(!key)return;let id=null;for(const [u,a] of accounts)if(a.key===key)id=u;
+    if(!id)return msgBox('Add a Buddy','No member has the screen name "'+addName.value.trim()+'". They need to sign on once to register it.');
+    if(allBuddyIds().includes(id))return msgBox('Add a Buddy',snOf(id)+' is already on your Buddy List.');
+    buddies.groups[grp.value].push(id);saveBuddies();renderBuddies();addName.value='';play('chat');};
+  addName.addEventListener('keydown',e=>{if(e.key==='Enter')add();});
+  w.body.append(h('label',{for:'add-name',text:'Screen name:'}),h('div',{class:'row'},addName,h('button',{class:'btn',type:'button',text:'Add',onclick:add})),h('div',{class:'row'},h('label',{for:'add-group',text:'Group:'}),grp),h('div',{text:'Member directory (click to pick):'}),dirEl);
+  renderDirectory();addName.focus();
+}
+function renderDirectory(){
+  if(!dirEl)return;dirEl.textContent='';
+  const list=[...accounts].filter(([id])=>id!==uid).sort((a,b)=>a[1].key<b[1].key?-1:1);
+  if(!list.length)return void dirEl.append(h('div',{class:'empty',text:live?'Nobody else has registered yet. Share this page, and each person who signs on shows up here.':'The directory is unavailable in demo mode.'}));
+  for(const [id,a] of list)dirEl.append(h('div',{class:'li',tabindex:'0',text:a.sn+(online.has(id)?'  (online)':''),onclick:()=>{addName.value=a.sn;addName.focus();}}));
+}
+
+/* ---------- info / profile ---------- */
+function showInfo(id){
+  const wid='info:'+id;const w=openWin(wid,{title:'Buddy Info: '+snOf(id),w:290});if(w.body.firstChild)return;
+  const head=h('div',{style:'line-height:1.6'});const self=id===uid;
+  const prof=self?h('textarea',{rows:'5',maxlength:'600',id:'my-profile'}):h('div',{class:'pre in',style:'min-height:70px;max-height:140px'});
+  if(self)prof.value=accounts.get(uid)?.profile||'';
+  const blk=h('button',{class:'btn',type:'button',onclick:()=>{const i=buddies.blocked.indexOf(id);i<0?buddies.blocked.push(id):buddies.blocked.splice(i,1);saveBuddies();w.refresh();}});
+  w.refresh=()=>{const a=accounts.get(id),st=online.get(id);w.setTitle('Buddy Info: '+snOf(id));head.textContent='';
+    const line=(k,v)=>head.append(h('div',null,h('b',{text:k+': '}),v));
+    line('Screen Name',snOf(id));line('Status',st?(st.away?'Away':'Online'):'Offline');
+    if(st&&st.away)line('Away message',st.away);
+    line('Warning Level',(st?st.warn:0)+'%');
+    line('Member Since',a&&a.created?new Date(a.created).toLocaleDateString():'not registered');
+    if(!self)prof.textContent=a&&a.profile?a.profile:'No profile information provided.';
+    blk.textContent=buddies.blocked.includes(id)?'Unblock':'Block';};
+  w.body.append(head,h('b',{text:'Profile'}),prof,h('div',{class:'row end'},
+    self?h('button',{class:'btn',type:'button',text:'Save Profile',onclick:async()=>{if(!live)return msgBox('Profile','Profiles cannot be saved in demo mode.');try{await db.doc('accounts/'+uid).update({profile:prof.value.slice(0,600)});msgBox('Profile','Your profile was saved.',false);}catch(e){msgBox('Profile','Your profile could not be saved. Try again.');}}}):[h('button',{class:'btn',type:'button',text:'Send IM',onclick:()=>openIM(id)}),blk],
+    h('button',{class:'btn',type:'button',text:'Close',onclick:()=>closeWin(wid)})));
+  w.refresh();
+}
+
+/* ---------- instant messages ---------- */
+const COLORS=[['Black','#000000'],['Blue','#0000cc'],['Red','#cc0000'],['Green','#007a00'],['Purple','#800080'],['Teal','#007070']];
+const SIZES=[12,14,18,24];
+function cleanFmt(f){f=f&&typeof f==='object'?f:{};return{b:!!f.b,i:!!f.i,u:!!f.u,c:/^#[0-9a-f]{6}$/i.test(f.c)?f.c:'#000000',s:SIZES.includes(f.s)?f.s:14};}
+function line(log,who,cls,text,fmt,extra){const p=mkLine(who,cls,text,fmt,extra);const stick=log.scrollHeight-log.scrollTop-log.clientHeight<40;log.append(p);if(stick)log.scrollTop=log.scrollHeight;}
+function mkLine(who,cls,text,fmt,extra){const p=h('p');if(who)p.append(h('span',{class:'sn '+cls,text:who+': '}));const m=h('span',{class:who?'':'sys',text});if(who&&fmt){m.style.fontWeight=fmt.b?'bold':'';m.style.fontStyle=fmt.i?'italic':'';m.style.textDecoration=fmt.u?'underline':'';m.style.color=fmt.c;m.style.fontSize=fmt.s+'px';}p.append(m);if(extra)p.append(extra);return p;}
+function composer(onSend){
+  const fmt={b:false,i:false,u:false,c:'#000000',s:14};
+  const ta=h('textarea',{rows:'2',maxlength:'800','aria-label':'Message'});
+  const tg=(k,l,st)=>{const b=h('button',{class:'btn',type:'button',text:l,style:st,'aria-label':k,onclick:()=>{fmt[k]=!fmt[k];b.classList.toggle('on',fmt[k]);ta.focus();}});return b;};
+  const col=h('select',{'aria-label':'Text color'},COLORS.map(c=>h('option',{value:c[1],text:c[0]})));col.addEventListener('change',()=>fmt.c=col.value);
+  const sz=h('select',{'aria-label':'Text size'},SIZES.map(s=>h('option',{value:s,text:s+' pt'})));sz.value='14';sz.addEventListener('change',()=>fmt.s=+sz.value);
+  const send=()=>{const t=ta.value.trim();if(!t)return;ta.value='';onSend(t,{...fmt});ta.focus();};
+  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
+  return{bar:h('div',{class:'fmt'},tg('b','B','font-weight:bold'),tg('i','I','font-style:italic'),tg('u','U','text-decoration:underline'),col,sz),ta,send};
+}
+function openIM(id,quiet){
+  const wid='im:'+id;let w=wins.get(wid);
+  if(w){if(!quiet)focusWin(wid);else if(activeId!==wid)w.tbtn.classList.add('flash');return w;}
+  w=openWin(wid,{title:snOf(id)+' - Instant Message',w:340,h:340,quiet});
+  const log=h('div',{class:'log in'}),warnLbl=h('div',{class:'note'});
+  const c=composer((t,fmt)=>{
+    line(log,me.sn,'me',t,fmt);
+    if(buddies.blocked.includes(id))return line(log,null,'','You have blocked '+snOf(id)+'. Unblock them to send messages.');
+    if(!room||!online.has(id)){play('error');return line(log,null,'',snOf(id)+' is not currently signed on.');}
+    sentTo.add(id);play('imOut');histAdd('im_'+id,{o:1,t,f:fmt,ts:Date.now()});room.emit('im',{to:id,t,f:fmt}).catch(()=>line(log,null,'','Your message could not be sent.'));
+  });
+  const warnBtn=h('button',{class:'btn',type:'button',text:'Warn',onclick:()=>{if(!gotFrom.has(id))return msgBox('Warn','You can only warn someone who has sent you an instant message.');if(room)room.emit('warn',{to:id}).catch(()=>{});line(log,null,'','You warned '+snOf(id)+'.');}});
+  const blkBtn=h('button',{class:'btn',type:'button',onclick:()=>{const i=buddies.blocked.indexOf(id);i<0?buddies.blocked.push(id):buddies.blocked.splice(i,1);saveBuddies();refreshAll();}});
+  w.log=log;showHist(log,'im_'+id,m=>m.o?me.sn:snOf(id));
+  w.refresh=()=>{const st=online.get(id);w.setTitle(snOf(id)+' - Instant Message');warnLbl.textContent=snOf(id)+"'s Warning Level: "+(st?st.warn:0)+'%'+(st?(st.away?'  ·  Away':''):'  ·  Offline');blkBtn.textContent=buddies.blocked.includes(id)?'Unblock':'Block';};
+  w.body.append(warnLbl,log,c.bar,c.ta,h('div',{class:'row'},warnBtn,blkBtn,h('button',{class:'btn',type:'button',text:'Info',onclick:()=>showInfo(id)}),h('span',{class:'grow'}),h('button',{class:'btn',type:'button',text:'Send',style:'font-weight:bold;min-width:64px',onclick:c.send})));
+  w.refresh();if(!quiet)c.ta.focus();return w;
+}
+function onIM(m){
+  const d=m.data;if(!me.on||!m.by||!d||typeof d!=='object'||d.to!==uid)return;
+  if(m.isMe&&m.sameTab)return;
+  if(buddies.blocked.includes(m.by))return;
+  const text=clip(d.t,800);if(!text)return;
+  const w=openIM(m.by,true),from=snOf(m.by);gotFrom.add(m.by);
+  if(d.k==='auto')line(w.log,null,'','Auto response from '+from+': '+text);
+  else if(d.k==='inv'&&/^[a-z0-9][a-z0-9-]{0,39}$/.test(d.r||'')){const nm=clip(d.n,40)||d.r;line(w.log,null,'',from+' invites you to the chat room "'+nm+'".',null,h('button',{class:'btn',type:'button',text:'Go',onclick:()=>openChat(d.r,nm)}));}
+  else line(w.log,from,m.isMe?'me':'them',text,cleanFmt(d.f));
+  if(d.k!=='inv'&&!m.isMe)histAdd('im_'+m.by,{o:0,t:text,f:d.k==='auto'?null:cleanFmt(d.f),k:d.k==='auto'?'auto':null,ts:Date.now()});
+  play('imIn');
+  if(me.away&&d.k!=='auto'&&!m.isMe&&Date.now()-(lastAuto.get(m.by)||0)>20000){lastAuto.set(m.by,Date.now());histAdd('im_'+m.by,{o:1,t:me.away,k:'auto',ts:Date.now()});room.emit('im',{to:m.by,t:me.away,k:'auto'}).catch(()=>{});line(w.log,null,'','Auto response sent to '+from+': '+me.away);}
+}
+function onWarn(m){
+  const d=m.data;if(!me.on||!m.by||m.isMe||!d||d.to!==uid||!sentTo.has(m.by)||buddies.blocked.includes(m.by))return;
+  me.warn=Math.min(100,me.warn+20);setPresence();
+  msgBox('Warning','You have been warned by '+snOf(m.by)+'.\nYour warning level is now '+me.warn+'%.');
+}
+setInterval(()=>{if(me.on&&me.warn>0){me.warn=Math.max(0,me.warn-5);setPresence();}},60000);
+
+/* ---------- chat rooms ---------- */
+let roomsEl=null,selRoom=null;
+function showRooms(){
+  if(!me.on)return showSignOn();
+  const w=openWin('rooms',{title:'Chat Rooms',w:270,h:300,onClose:()=>{roomsEl=null}});if(w.body.firstChild)return;
+  roomsEl=h('div',{class:'tree in'});
+  const nm=h('input',{type:'text',id:'room-new',maxlength:'30',class:'grow',placeholder:'New room name',autocomplete:'off'});
+  const create=async()=>{const name=nm.value.trim().replace(/\s+/g,' ');const id=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+    if(id.length<2)return msgBox('Chat Rooms','Room names need at least two letters or numbers.');
+    if(live&&!rooms.some(r=>r.id===id)){try{await db.doc('rooms/'+id).set({name,created:Date.now()});}catch(e){return msgBox('Chat Rooms','The room could not be created. You may have view-only access.');}}
+    nm.value='';openChat(id,(rooms.find(r=>r.id===id)||{name}).name);};
+  nm.addEventListener('keydown',e=>{if(e.key==='Enter')create();});
+  const go=()=>{const r=rooms.find(r=>r.id===selRoom);if(!r)return msgBox('Chat Rooms','Select a room in the list first.');openChat(r.id,r.name);};
+  w.body.append(h('div',{text:'Pick a room and press Go Chat:'}),roomsEl,h('div',{class:'row end'},h('button',{class:'btn',type:'button',text:'Go Chat',style:'font-weight:bold',onclick:go})),h('div',{class:'row'},nm,h('button',{class:'btn',type:'button',text:'Create',onclick:create})));
+  renderRooms();
+}
+function renderRooms(){
+  if(!roomsEl)return;roomsEl.textContent='';
+  if(!rooms.length)return void roomsEl.append(h('div',{class:'empty',text:'No rooms are open yet. Type a name below and press Create to start one.'}));
+  for(const r of rooms)roomsEl.append(h('div',{class:'li'+(selRoom===r.id?' sel':''),tabindex:'0',text:r.name,onclick:()=>{if(selRoom===r.id)return openChat(r.id,r.name);selRoom=r.id;renderRooms();},onkeydown:e=>{if(e.key==='Enter')openChat(r.id,r.name);}}));
+}
+async function openChat(id,name){
+  if(!me.on)return;const wid='chat:'+id;if(wins.has(wid))return focusWin(wid);
+  let nr=null,armed=false,prev=new Set(),dead=false;
+  const log=h('div',{class:'log in'}),who=h('div',{class:'who in'}),count=h('div',{class:'note'});
+  const w=openWin(wid,{title:'Chat Room: '+name,w:430,h:360,onClose:()=>{dead=true;chats.delete(id);if(nr)nr.leave().catch(()=>{});}});
+  const c=composer((t,fmt)=>{line(log,me.sn,'me',t,fmt);histAdd('room_'+id,{by:uid,t,f:fmt,ts:Date.now()});if(nr)nr.emit('chat',{t,f:fmt}).catch(()=>line(log,null,'','Your message could not be sent.'));});
+  const invite=()=>{const on=allBuddyIds().filter(b=>online.has(b)&&b!==uid);if(!room||!on.length)return msgBox('Invite','None of your buddies are signed on right now.');
+    const iw=openWin('inv:'+id,{title:'Invite a Buddy',w:220,center:true});if(iw.body.firstChild)return;
+    iw.body.append(h('div',{text:'Invite to "'+name+'":'}),h('div',{class:'tree in',style:'max-height:160px'},on.map(b=>h('div',{class:'li',tabindex:'0',text:snOf(b),onclick:()=>{sentTo.add(b);room.emit('im',{to:b,t:'Join me in '+name,k:'inv',r:id,n:name}).catch(()=>{});line(log,null,'','Invitation sent to '+snOf(b)+'.');closeWin('inv:'+id);}}))));};
+  w.body.append(h('div',{class:'split'},log,h('div',{style:'display:flex;flex-direction:column;gap:3px;min-height:0'},count,who)),c.bar,c.ta,h('div',{class:'row end'},h('button',{class:'btn',type:'button',text:'Invite',onclick:invite}),h('button',{class:'btn',type:'button',text:'Send',style:'font-weight:bold;min-width:64px',onclick:c.send})));
+  who.style.flex='1';
+  const paint=ids=>{who.textContent='';count.textContent=ids.length+(ids.length===1?' person here':' people here');for(const i of ids)who.append(h('div',{class:'li',text:snOf(i),tabindex:'0',title:'Click to IM',onclick:()=>{if(i!==uid)openIM(i);}}));};
+  w.refresh=()=>paint([...prev]);
+  chats.set(id,{leave(){dead=true;if(nr)nr.leave().catch(()=>{});}});
+  showHist(log,'room_'+id,m=>snOf(m.by));
+  line(log,null,'','*** You are in "'+name+'". ***');
+  if(!room){prev=new Set([uid]);paint([uid]);line(log,null,'','Demo mode: nobody else can join from this view.');play('chat');c.ta.focus();return;}
+  try{nr=await room.join('chat-'+id);}catch(e){line(log,null,'','This room could not be reached. Close the window and try again.');return;}
+  if(dead){nr.leave().catch(()=>{});return;}
+  nr.presence({on:1}).catch(()=>{});
+  nr.onPeers(ch=>{const now=new Set();for(const p of ch.peers)if(p.kind==='viewer'&&p.by&&(p.presence||{}).on)now.add(p.by);now.add(uid);
+    if(armed){let ding=false;for(const i of now)if(!prev.has(i)){line(log,null,'',snOf(i)+' has entered the room.');ding=true;}for(const i of prev)if(!now.has(i))line(log,null,'',snOf(i)+' has left the room.');if(ding)play('chat');}
+    prev=now;paint([...now]);},()=>line(log,null,'','You were disconnected from this room.'));
+  nr.on('chat',m=>{const d=m.data;if(!m.by||!d||(m.isMe&&m.sameTab)||buddies.blocked.includes(m.by))return;const t=clip(d.t,800);if(!t)return;line(log,snOf(m.by),m.isMe?'me':'them',t,cleanFmt(d.f));if(!m.isMe)histAdd('room_'+id,{by:m.by,t,f:cleanFmt(d.f),ts:Date.now()});if(activeId!==wid){w.tbtn.classList.add('flash');play('imIn');}},()=>{});
+  setTimeout(()=>{armed=true},1800);play('chat');c.ta.focus();
+}
+
+/* ---------- sounds / read me ---------- */
+function showSounds(){
+  const w=openWin('sounds',{title:'Sounds',w:250,center:true});if(w.body.firstChild)return;
+  const cb=h('input',{type:'checkbox',id:'snd-on'});cb.checked=soundOn;cb.addEventListener('change',()=>{soundOn=cb.checked;store.set('dt-sound',soundOn?'1':'0');});
+  const T=(l,n)=>h('button',{class:'btn',type:'button',text:l,onclick:()=>play(n,true)});
+  w.body.append(h('label',{class:'row',for:'snd-on'},cb,'Play sounds'),h('fieldset',{class:'fs'},h('legend',{text:'Preview'}),T('Buddy signs on (door opens)','doorOpen'),T('Buddy signs off (door closes)','doorClose'),T('IM received','imIn'),T('IM sent','imOut'),T('Chat room chime','chat'),T('New mail','mail'),h('button',{class:'btn',type:'button',text:'New mail voice',onclick:()=>{const o=soundOn;soundOn=true;sayMail();soundOn=o;}}),T('Dial-up connect','modem'),T('Error','error')));
+}
+function showReadme(){
+  const w=openWin('readme',{title:'Read Me.txt - Notepad',w:360,h:330});if(w.body.firstChild)return;
+  w.body.style.padding='2px';
+  w.body.append(h('div',{class:'pre in',text:
+'DIALTONE MESSENGER 1.0.95\n=========================\n\nGETTING STARTED\n1. Double-click DialTone Messenger and press Get a Screen\n   Name and enter your email to create your account, then sign on with it.\n2. Press Add on your Buddy List and type a friend\'s screen\n   name. They must have signed on at least once.\n3. Click a buddy twice (or select and press IM) to chat.\n\nWHAT THE SOUNDS MEAN\n  Door creaks open ..... a buddy signed on\n  Door slams ........... a buddy signed off\n  Three rising notes ... you got an instant message\n  Bell ................. someone entered your chat room\n\nGOOD TO KNOW\n- Your IMs and chat room messages are saved to your own\n  account and reappear when you reopen a conversation.\n- You cannot IM someone who is signed off.\n- There is no password reset, so remember yours.\n- Away puts up an auto response for anyone who IMs you.\n- Warn raises a pest\'s warning level by 20%. It fades\n  5% a minute. You can only warn people who IM\'d you.\n- Block hides someone\'s IMs and chat messages from you.\n- Be kind. IMs travel over a shared line, so treat them\n  like a party line, not a sealed letter.\n'}));
+}
+
+/* ---------- shared photo helpers ---------- */
+async function shrinkPhoto(file,side,limit){
+  const img=await new Promise((ok,bad)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=bad;i.src=URL.createObjectURL(file);});
+  const k=Math.min(1,side/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*k));c.height=Math.max(1,Math.round(img.naturalHeight*k));
+  const g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);
+  let blob=null;for(const q of [.82,.66,.5,.36]){blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',q));if(!blob||!limit||blob.size<=limit)break;}
+  if(!blob||(limit&&blob.size>limit))throw new Error('too big');return blob;}
+function dialupImg(urlP,alt){
+  const img=h('img',{alt,class:'pic'}),cap=h('div',{class:'small',text:'Connecting to picture…'}),box=h('div',{class:'picbox'},h('div',{class:'picframe in'},img),cap);
+  const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  img.addEventListener('load',()=>{const kb=Math.max(1,Math.round(img.naturalWidth*img.naturalHeight/9000));
+    if(calm){cap.textContent='Picture · about '+kb+'K';return;}
+    let pct=0;img.style.clipPath='inset(0 0 100% 0)';img.style.filter='blur(6px) saturate(.4)';
+    const pass2=()=>{let q=0;img.style.filter='none';const cover=h('div',{class:'piccover'});img.parentNode.append(cover);const t2=setInterval(()=>{if(!img.isConnected)return clearInterval(t2);q=Math.min(100,q+3+Math.random()*7);cover.style.top=q+'%';cap.textContent='Sharpening picture… '+Math.round(q)+'%';if(q>=100){clearInterval(t2);cover.remove();cap.textContent='Done · about '+kb+'K';}},170);};
+    const t=setInterval(()=>{if(!img.isConnected)return clearInterval(t);if(Math.random()<.12){cap.textContent='Receiving picture… '+Math.round(pct)+'% (stalled)';return;}pct=Math.min(100,pct+2+Math.random()*6);img.style.clipPath='inset(0 0 '+(100-pct)+'% 0)';cap.textContent='Receiving picture… '+Math.round(pct)+'% at 28.8 kbps';if(pct>=100){clearInterval(t);img.style.clipPath='';pass2();}},160);});
+  img.addEventListener('error',()=>{cap.textContent='The picture could not be loaded.';});
+  Promise.resolve(urlP).then(u=>{img.src=u;}).catch(()=>{cap.textContent='The picture could not be loaded.';});return box;}
+
+/* ---------- DialMail: end-to-end encrypted mail ---------- */
+const MAILDOM='@dialtone.web',HANDLE_RE=/^[a-z][a-z0-9._-]{2,19}$/,EC={name:'ECDH',namedCurve:'P-256'};
+const b64=buf=>{let s='';const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=8192)s+=String.fromCharCode.apply(null,a.subarray(i,i+8192));return btoa(s);};
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+let mailMe=null,mailOn=false;const mailbox=new Map(),pairCache=new Map();
+const mail={msgs:new Map(),state:{read:[],del:[]},unread:0,box:'in',sel:null,busy:false};
+async function aesEnc(key,data){const iv=crypto.getRandomValues(new Uint8Array(12));return{iv:b64(iv),ct:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,data))};}
+const aesDec=(key,o)=>crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},key,unb64(o.ct));
+async function pairKey(other){if(pairCache.has(other))return pairCache.get(other);const reg=mailbox.get(other);if(!reg)throw new Error('no key');
+  const pub=await crypto.subtle.importKey('jwk',reg.pub,EC,false,[]),k=await crypto.subtle.deriveKey({name:'ECDH',public:pub},mailMe.priv,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);pairCache.set(other,k);return k;}
+const addrOf=id=>(mailbox.get(id)||{}).handle?mailbox.get(id).handle+MAILDOM:snOf(id);
+async function mailLoadRegistry(){const s=await db.collection('mailkeys').get();mailbox.clear();for(const d of s.docs){const x=d.data()||{};if(HANDLE_RE.test(x.handle||'')&&x.pub&&typeof x.pub.x==='string'&&typeof x.pub.y==='string')mailbox.set(d.id,{handle:x.handle,pub:{kty:'EC',crv:'P-256',x:x.pub.x,y:x.pub.y}});}}
+async function mailInit(){mailMe=null;pairCache.clear();mail.msgs.clear();await mailLoadRegistry();const reg=mailbox.get(uid);if(!reg)return;
+  const s=await db.doc('data/users/'+uid+'/mailkey').get(),k=s.exists?s.data():null;if(!k||!k.jwk){mailMe={handle:reg.handle,broken:true};return;}
+  mailMe={handle:reg.handle,priv:await crypto.subtle.importKey('jwk',k.jwk,EC,false,['deriveKey'])};}
+async function mailSetup(handle){
+  const kp=await crypto.subtle.generateKey(EC,true,['deriveKey']),pub=await crypto.subtle.exportKey('jwk',kp.publicKey),priv=await crypto.subtle.exportKey('jwk',kp.privateKey);
+  await db.doc('data/users/'+uid+'/mailkey').set({jwk:priv});await db.doc('mailkeys/'+uid).set({handle,pub:{x:pub.x,y:pub.y},created:Date.now()});await mailInit();}
+let stateChain=Promise.resolve();
+function mailSaveState(){const d={read:mail.state.read.slice(-3000),del:mail.state.del.slice(-3000)};stateChain=stateChain.then(()=>db.doc('data/users/'+uid+'/mailstate').set(d)).catch(()=>{});}
+const inInbox=m=>m.to.includes(uid)&&!mail.state.del.includes('i:'+m.key),inSent=m=>m.from===uid&&!mail.state.del.includes('s:'+m.key);
+async function mailRefresh(){
+  if(!mailOn||!mailMe||!mailMe.priv)return;if(mail.busy){mail.again=true;return;}mail.busy=true;mail.again=false;const before=mail.unread;
+  try{await mailLoadRegistry();
+    try{const s=await db.doc('data/users/'+uid+'/mailstate').get(),x=s.exists?s.data():{};mail.state={read:Array.isArray(x.read)?x.read:[],del:Array.isArray(x.del)?x.del:[]};}catch(e){}
+    for(const [s] of mailbox){let snap;try{snap=await db.collection('mailout/'+s+'/m').get();}catch(e){continue;}
+      for(const d of snap.docs){const key=s+'/'+d.id;if(mail.msgs.has(key))continue;const x=d.data()||{},to=Array.isArray(x.to)?x.to.filter(v=>typeof v==='string'):[];
+        if(s!==uid&&!to.includes(uid))continue;const k=x.keys&&x.keys[uid];if(!k)continue;
+        try{const raw=await aesDec(await pairKey(s),k),ck=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']),c=JSON.parse(new TextDecoder().decode(await aesDec(ck,x)));
+          mail.msgs.set(key,{key,id:d.id,from:s,to,ts:+x.ts||0,subj:clip(c.s,120),body:clip(c.b,5000),pic:!!x.pic,ck});}catch(e){}}}
+    mail.unread=[...mail.msgs.values()].filter(m=>inInbox(m)&&!mail.state.read.includes(m.key)).length;
+  }finally{mail.busy=false;}
+  renderMail();renderBuddies();if(mail.again){mail.again=false;await mailRefresh();}return mail.unread>before;}
+setInterval(()=>{if(mailOn&&mailMe&&mailMe.priv)mailRefresh().catch(()=>{});},60000);
+function onMailPing(m){const d=m.data;if(!mailOn||!m.by||!d||d.to!==uid||m.isMe)return;mailRefresh().then(n=>{if(n){play('mail');sayMail();if(wins.has('mail')&&activeId!=='mail')wins.get('mail').tbtn.classList.add('flash');}}).catch(()=>{});}
+async function mailSend(toIds,subj,body,file){
+  const ck=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']),raw=await crypto.subtle.exportKey('raw',ck),id=hex(crypto.getRandomValues(new Uint8Array(10)));
+  const enc=await aesEnc(ck,new TextEncoder().encode(JSON.stringify({s:subj,b:body}))),keys={};
+  for(const r of new Set([...toIds,uid]))keys[r]=await aesEnc(await pairKey(r),raw);
+  if(file){const blob=await shrinkPhoto(file,640,150000),p=await aesEnc(ck,await blob.arrayBuffer());await db.doc('mailpics/'+uid+'/p/'+id).set(p);}
+  await db.doc('mailout/'+uid+'/m/'+id).set({to:toIds,ts:Date.now(),iv:enc.iv,ct:enc.ct,keys,pic:!!file});
+  if(room)for(const r of toIds)if(r!==uid)room.emit('mail',{to:r}).catch(()=>{});}
+async function mailPicUrl(m){const s=await db.doc('mailpics/'+m.from+'/p/'+m.id).get(),x=s.exists?s.data():null;if(!x)throw new Error('missing');return URL.createObjectURL(new Blob([await aesDec(m.ck,x)],{type:'image/jpeg'}));}
+const MAILBOX_SVG='<svg viewBox="0 0 32 32" width="56" height="56"><rect x="14" y="18" width="4" height="13" fill="#804000" stroke="#0a0a0a"/><path d="M4 10a6 6 0 0 1 12 0v9H4z" fill="#000080" stroke="#0a0a0a"/><path d="M10 4h12a6 6 0 0 1 6 6v9H16v-9a6 6 0 0 0-6-6z" fill="#1084d0" stroke="#0a0a0a"/><rect x="21" y="5" width="2" height="9" fill="#cc0000"/><rect x="21" y="5" width="7" height="4" fill="#cc0000" stroke="#0a0a0a" stroke-width=".5"/><rect x="6" y="12" width="8" height="5" fill="#ffffff" stroke="#0a0a0a" stroke-width=".5"/></svg>';
+function sayMail(){if(!soundOn||!window.speechSynthesis||typeof SpeechSynthesisUtterance!=='function')return;setTimeout(()=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('You have mail!');u.rate=.95;u.pitch=1;u.lang='en-US';const v=speechSynthesis.getVoices().find(x=>/^en(-|_)US/i.test(x.lang));if(v)u.voice=v;speechSynthesis.speak(u);}catch(e){}},750);}
+function mailAlert(){
+  const w=openWin('mailalert',{title:'DialMail',w:260,center:true});if(w.body.firstChild)return;play('mail');sayMail();
+  const pic=h('div');pic.innerHTML=MAILBOX_SVG;
+  w.body.append(h('div',{class:'row',style:'flex-wrap:nowrap;gap:12px'},pic.firstChild,h('div',null,h('b',{text:'You have mail!',style:'font:bold 20px var(--chat)'}),h('div',{class:'note',text:mail.unread+' unread message'+(mail.unread===1?'':'s')+' in your Inbox.'}))),
+    h('div',{class:'row end'},h('button',{class:'btn',type:'button',text:'Read Mail',style:'font-weight:bold',onclick:()=>{closeWin('mailalert');showMail();}}),h('button',{class:'btn',type:'button',text:'Later',onclick:()=>closeWin('mailalert')})));}
+let mailEls=null;
+async function mailSignIn(name,pw){
+  if(typeof api==='function'){let sess;try{sess=await api('POST','/api/login',{sn:name,pw});}catch(e){return e.status?e.message.replace('Press "Get a Screen Name" to create one before you sign on.','Create an account with Get a Screen Name in DialTone Messenger first.'):'DialMail is not answering. Check your connection and try again.';}
+    if(token&&uid!==sess.uid)return 'Sign off DialTone Messenger first to open a different mailbox.';
+    if(!token)await startSession(sess);}
+  else{await boot;if(!live)return 'DialMail is not available in demo mode.';
+    const key=name.toLowerCase().replace(/@dialtone\\.web$/,'').replace(/\\s+/g,'');await mailLoadRegistry();
+    let a=[...accounts].find(([x,v])=>ownAid(x)&&v.key===key);a=a?a[0]:([...mailbox].find(([x,v])=>ownAid(x)&&v.handle===key)||[])[0];
+    if(!a)return 'That address or screen name does not match any of your accounts.';
+    if(me.on&&a!==uid)return 'Sign off DialTone Messenger first to open a different mailbox.';
+    const sec=await loadSecret(a);if(!sec)return 'No account was found. Create one with Get a Screen Name in DialTone Messenger first.';
+    if(await pwHash(pw,sec.salt)!==sec.hash)return 'The password you entered is incorrect. Please try again.';
+    if(!me.on)uid=a;}
+  await mailInit();mailOn=true;return null;}
+function mailSignOut(quiet){
+  mailOn=false;mailMe=null;mail.msgs.clear();mail.unread=0;mail.sel=null;pairCache.clear();closeWin('mailalert');
+  for(const id of [...wins.keys()])if(id.startsWith('compose'))closeWin(id);
+  mailEls=null;if(wins.has('mail')){if(quiet)closeWin('mail');else showMail();}renderBuddies();
+  if(typeof api==='function'&&!me.on&&token)endSession();
+  if(typeof api!=='function'&&!me.on&&cuid)uid=cuid;}
+function showMail(){
+  if(!mailOn){
+    const w=openWin('mail',{title:'DialMail',w:300,onClose:()=>{mailEls=null;}});if(w.body.firstChild&&mailEls&&mailEls.signin)return;w.body.textContent='';
+    const nm=h('input',{type:'text',id:'mail-name',maxlength:'40',autocomplete:'username',spellcheck:'false',style:'width:100%'}),pw=h('input',{type:'password',id:'mail-pass',maxlength:'64',autocomplete:'current-password',style:'width:100%'}),go=h('button',{class:'btn',type:'submit',text:'Sign In',style:'font-weight:bold;min-width:80px'});
+    nm.value=me.on?me.sn:store.get('dt-mailname',store.get('dt-sn',''));
+    const pic=h('div');pic.innerHTML=MAILBOX_SVG;
+    const f=h('form',{style:'display:flex;flex-direction:column;gap:6px'},h('div',{class:'brand',style:'padding:8px 10px'},pic.firstChild,h('div',null,h('b',{text:'DialMail',style:'font-size:22px'}),h('i',{text:'Sign In'}))),
+      h('label',{for:'mail-name',text:'DialMail address or screen name:'}),nm,h('label',{for:'mail-pass',text:'Password:'}),pw,
+      h('div',{class:'note',text:'Use your DialTone password. New here? Create an account with Get a Screen Name in DialTone Messenger first.'}),h('div',{class:'row end'},go));
+    f.addEventListener('submit',async e=>{e.preventDefault();actx();const n=nm.value.trim(),p=pw.value;if(!n||!p)return msgBox('DialMail','Type your DialMail address or screen name and your password.');
+      go.disabled=true;go.textContent='Checking…';const err=await mailSignIn(n,p).catch(()=>'DialMail is not answering. Try again in a moment.');
+      if(err){go.disabled=false;go.textContent='Sign In';return msgBox('DialMail',err);}
+      store.set('dt-mailname',n);play('chat');mailEls=null;showMail();await mailRefresh().catch(()=>{});if(mail.unread>0)mailAlert();});
+    w.body.append(f);mailEls={signin:true};(nm.value?pw:nm).focus();return;}
+  if(wins.has('mail')&&mailEls&&mailEls.signin)closeWin('mail');
+  const w=openWin('mail',{title:'DialMail',w:Math.min(600,desk.clientWidth-8),h:Math.min(460,desk.clientHeight-8),onClose:()=>{mailEls=null;}});
+  if(w.body.firstChild&&mailEls)return;w.body.textContent='';
+  if(!mailMe){
+    const hn=h('input',{type:'text',id:'mail-handle',maxlength:'20',class:'grow',autocomplete:'off',spellcheck:'false'}),go=h('button',{class:'btn',type:'submit',text:'Create Mailbox',style:'font-weight:bold'});
+    const f=h('form',{style:'display:flex;flex-direction:column;gap:8px'},h('div',{class:'brand',style:'padding:8px 10px'},h('div',null,h('b',{text:'DialMail',style:'font-size:22px'}),h('i',{text:'Set up your mailbox'}))),
+      h('label',{for:'mail-handle',text:'Choose your email handle (3 to 20 letters, numbers, dots, dashes):'}),h('div',{class:'row',style:'flex-wrap:nowrap'},hn,h('b',{text:MAILDOM})),
+      h('div',{class:'note',text:'Your mail is scrambled on your computer before it is sent, so only you and the people you write to can read it. Your handle cannot be changed later.'}),h('div',{class:'row end'},go,h('button',{class:'btn',type:'button',text:'Sign Out',onclick:()=>{mailSignOut();play('doorClose');}})));
+    f.addEventListener('submit',async e=>{e.preventDefault();const v=hn.value.trim().toLowerCase().replace(/@dialtone\.web$/,'');
+      if(!HANDLE_RE.test(v))return msgBox('DialMail','Handles are 3 to 20 characters, start with a letter, and use only letters, numbers, dots, dashes and underscores.');
+      go.disabled=true;try{await mailLoadRegistry();if([...mailbox].some(([u,x])=>x.handle===v&&u!==uid)){go.disabled=false;return msgBox('DialMail','The handle "'+v+MAILDOM+'" is taken. Please choose another.');}
+        await mailSetup(v);play('chat');mailEls=null;showMail();msgBox('DialMail','Your mailbox '+v+MAILDOM+' is ready.',false);}catch(err){go.disabled=false;msgBox('DialMail','Your mailbox could not be created. Try again.');}});
+    w.body.append(f);mailEls={setup:true};hn.focus();return;}
+  if(mailMe.broken){w.body.append(h('p',{text:'The key that unlocks your mailbox '+mailMe.handle+MAILDOM+' is missing from your account, so your mail cannot be opened. Ask the owner of this service for help.'}));mailEls={setup:true};return;}
+  const B=(t,f)=>h('button',{class:'btn',type:'button',text:t,onclick:f});
+  const inBtn=B('Inbox',()=>{mail.box='in';mail.sel=null;renderMail();}),sentBtn=B('Sent',()=>{mail.box='sent';mail.sel=null;renderMail();});
+  const list=h('div',{class:'tree in mlist'}),read=h('div',{class:'log in mailread'});
+  w.body.append(h('div',{class:'row',style:'gap:3px'},B('Compose',()=>compose()),inBtn,sentBtn,B('Refresh',()=>mailRefresh().catch(()=>{})),B('Delete',()=>{const m=mail.msgs.get(mail.sel);if(!m)return msgBox('DialMail','Select a message first.');mail.state.del.push((mail.box==='in'?'i:':'s:')+m.key);mailSaveState();mail.sel=null;mail.unread=[...mail.msgs.values()].filter(x=>inInbox(x)&&!mail.state.read.includes(x.key)).length;renderMail();renderBuddies();}),h('span',{class:'grow'}),h('span',{class:'note',text:mailMe.handle+MAILDOM}),B('Sign Out',()=>{mailSignOut();play('doorClose');})),list,read);
+  mailEls={list,read,inBtn,sentBtn};renderMail();mailRefresh().catch(()=>{});
+}
+function renderMail(){
+  if(!mailEls||mailEls.setup||mailEls.signin)return;const {list,read,inBtn,sentBtn}=mailEls;
+  inBtn.textContent='Inbox'+(mail.unread?' ('+mail.unread+')':'');inBtn.classList.toggle('on',mail.box==='in');sentBtn.classList.toggle('on',mail.box==='sent');
+  const ms=[...mail.msgs.values()].filter(mail.box==='in'?inInbox:inSent).sort((a,b)=>b.ts-a.ts);list.textContent='';
+  list.append(h('div',{class:'mrow mhead'},h('span',{text:mail.box==='in'?'From':'To'}),h('span',{text:'Subject'}),h('span',{text:'Date'})));
+  if(!ms.length)list.append(h('div',{class:'empty',text:mail.box==='in'?'Your Inbox is empty. Press Compose to write to someone.':'You have not sent any mail yet.'}));
+  for(const m of ms){const unread=mail.box==='in'&&!mail.state.read.includes(m.key);
+    list.append(h('div',{class:'mrow li'+(unread?' unread':'')+(mail.sel===m.key?' sel':''),tabindex:'0',onclick:()=>openMsg(m),onkeydown:e=>{if(e.key==='Enter')openMsg(m);}},
+      h('span',{text:mail.box==='in'?addrOf(m.from):m.to.map(addrOf).join(', ')}),h('span',{text:(m.pic?'[pic] ':'')+(m.subj||'(no subject)')}),h('span',{text:new Date(m.ts).toLocaleDateString()})));}
+  const m=mail.msgs.get(mail.sel);read.textContent='';
+  if(!m){read.append(h('p',{class:'sys',text:'Select a message to read it.'}));return;}
+  const hd=(k,v)=>h('div',null,h('b',{text:k+': '}),v);
+  read.append(hd('From',addrOf(m.from)),hd('To',m.to.map(addrOf).join(', ')),hd('Date',new Date(m.ts).toLocaleString()),hd('Subject',m.subj||'(no subject)'),h('hr'),h('div',{class:'mbody',text:m.body}),
+    m.pic?dialupImg(mailPicUrl(m),'Photo attached to this message'):null,
+    h('div',{class:'row',style:'margin-top:8px'},h('button',{class:'btn',type:'button',text:'Reply',onclick:()=>compose([m.from],(/^re:/i.test(m.subj)?'':'Re: ')+m.subj,'\n\n----- '+addrOf(m.from)+' wrote: -----\n'+m.body)})));
+}
+function openMsg(m){mail.sel=m.key;if(mail.box==='in'&&!mail.state.read.includes(m.key)){mail.state.read.push(m.key);mail.unread=Math.max(0,mail.unread-1);mailSaveState();renderBuddies();}renderMail();}
+function compose(to,subj,body){
+  if(!mailMe||!mailMe.priv)return showMail();
+  const id='compose'+Date.now(),w=openWin(id,{title:'Write Mail',w:420,h:Math.min(440,desk.clientHeight-8)});
+  const dl=h('datalist',{id:id+'-dl'},[...mailbox.values()].map(x=>h('option',{value:x.handle+MAILDOM})));
+  const toI=h('input',{type:'text',id:id+'-to',list:id+'-dl',autocomplete:'off',style:'width:100%'}),su=h('input',{type:'text',id:id+'-su',maxlength:'120',style:'width:100%'}),ta=h('textarea',{id:id+'-tx',maxlength:'5000',style:'flex:1;min-height:90px'}),pic=h('input',{type:'file',id:id+'-pic',accept:'image/jpeg,image/png,image/gif,image/webp'}),send=h('button',{class:'btn',type:'submit',text:'Send Now',style:'font-weight:bold'});
+  toI.value=(to||[]).map(addrOf).join(', ');su.value=subj||'';ta.value=body||'';
+  const f=h('form',{style:'display:flex;flex-direction:column;gap:5px;flex:1;min-height:0'},dl,h('label',{for:id+'-to',text:'To (separate several with commas):'}),toI,h('label',{for:id+'-su',text:'Subject:'}),su,ta,h('label',{for:id+'-pic',text:'Attach a photo (optional):'}),pic,h('div',{class:'row end'},send,h('button',{class:'btn',type:'button',text:'Cancel',onclick:()=>closeWin(id)})));
+  f.addEventListener('submit',async e=>{e.preventDefault();await mailLoadRegistry().catch(()=>{});
+    const names=toI.value.split(/[,;\s]+/).map(x=>x.trim().toLowerCase().replace(/@dialtone\.web$/,'')).filter(Boolean),ids=[],bad=[];
+    for(const n of names){const hit=[...mailbox].find(([,x])=>x.handle===n);hit?ids.includes(hit[0])||ids.push(hit[0]):bad.push(n);}
+    if(!names.length)return msgBox('DialMail','Type who the mail is to, like friend'+MAILDOM+'.');
+    if(bad.length)return msgBox('DialMail','No DialMail address for: '+bad.map(b=>b+MAILDOM).join(', ')+'.');
+    if(ids.length>20)return msgBox('DialMail','Send to 20 people or fewer at a time.');
+    if(!ta.value.trim()&&!pic.files[0])return msgBox('DialMail','Write a message before sending.');
+    send.disabled=true;send.textContent='Sending…';
+    try{await mailSend(ids,su.value.trim().slice(0,120),ta.value.slice(0,5000),pic.files[0]||null);play('imOut');closeWin(id);await mailRefresh();}
+    catch(err){send.disabled=false;send.textContent='Send Now';msgBox('DialMail',err&&err.message==='too big'?'That photo is too large to send. Try a smaller picture.':'Your mail could not be sent. Try again.');}});
+  w.body.append(f);(to&&to.length?ta:toI).focus();
+}
+
+/* ---------- WebSurfer browser ---------- */
+const WEB='http://www.dialtone.web/';let dialed=false;const visited=new Set();
+const SITES=[['','DialTone Online','Your front door to the Information Superhighway.'],['cool','Cool Sites of the Week','Hand-picked pages worth the phone bill.'],['lingo','Chat Lingo Dictionary','What BRB, A/S/L and ROFL mean.'],['stardust','Stardust\'s Home Page','A personal page. Always under construction.'],['jukebox','MIDI Jukebox','Tunes that play right in your browser.'],['board','Message Boards','Post topics and replies with other members.'],['mail','DialMail','Free email for every DialTone member.'],['guestbook','The Guestbook','Sign it. Everybody does.'],['tips','Web Surfing Tips','Netiquette and dial-up survival.'],['search','WebSeek Search','Search every page on DialTone Online.']];
+function openBrowser(){
+  if(wins.has('web'))return focusWin('web');
+  if(dialed)return buildBrowser();
+  const w=openWin('dial',{title:'Connecting to DialTone Online',w:330,center:true});if(w.body.firstChild)return;
+  const tiles=['Dialing','Connecting','Checking password'].map(t=>h('div',{class:'tile in',text:t}));
+  const st=h('div',{text:'Initializing modem…'});
+  const total=soundOn?3600:1500,t0=Date.now();let stop=false;
+  w.o.onClose=()=>{stop=true;clearInterval(iv);};
+  w.body.append(h('div',{class:'brand',style:'padding:8px 10px'},h('div',null,h('b',{text:'DialTone',style:'font-size:22px'}),h('i',{text:'Online'}))),h('div',{class:'tiles'},tiles),st,h('div',{class:'row end'},h('button',{class:'btn',type:'button',text:'Cancel',onclick:()=>closeWin('dial')})));
+  actx();play('modem');
+  const msgs=['Dialing 555-0195…','Modem handshake at 28,800 bps…','Verifying name and password…'];
+  const iv=setInterval(()=>{const p=Math.min(1,(Date.now()-t0)/total),i=Math.min(2,Math.floor(p*3));tiles.forEach((t,k)=>t.classList.toggle('lit',k<=i));st.textContent=msgs[i];
+    if(p>=1&&!stop){clearInterval(iv);stop=true;dialed=true;st.textContent='Connected!';play('welcome');setTimeout(()=>{closeWin('dial');buildBrowser();},500);}},100);
+}
+function buildBrowser(){
+  const dw=desk.clientWidth;
+  const w=openWin('web',{title:'WebSurfer',w:560,h:Math.min(460,desk.clientHeight-8),x:dw<700?4:90,y:8,onClose:()=>{clearTimeout(timer);if(full)setFull(false);},onFull:()=>setFull(!full)});
+  w.body.style.padding='2px';w.body.style.gap='2px';
+  const stack=[];let pos=-1,timer=0;
+  const addr=h('input',{type:'text',id:'web-addr',class:'grow',spellcheck:'false',autocomplete:'off','aria-label':'Address'});
+  const view=h('div',{class:'web in',tabindex:'0'}),status=h('div',{class:'status grow',text:'Done'}),throb=h('div',{class:'throb'});
+  const B=(t,f)=>h('button',{class:'btn',type:'button',text:t,onclick:f});
+  let full=false;
+  const fsBtn=B('Full Screen',()=>setFull(!full));
+  function setFull(on){full=on;document.body.classList.toggle('fs',on);fsBtn.textContent=on?'Exit Full Screen':'Full Screen';
+    if(!!w.max!==on)w.toggleMax();else if(on)dispatchEvent(new Event('resize'));
+    if(on){const r=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();if(r&&r.catch)r.catch(()=>{});}
+    else if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});}
+  document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&full&&wins.has('web'))setFull(false);});
+  const back=B('Back',()=>{if(pos>0)load(stack[--pos]);}),fwd=B('Forward',()=>{if(pos<stack.length-1)load(stack[++pos]);});
+  const go=u=>{u=norm(u);stack.splice(pos+1);stack.push(u);pos=stack.length-1;load(u);};
+  const A=(text,path)=>{const u=/^https?:/.test(path)?path:WEB+path;return h('a',{href:'#',class:visited.has(u)?'v':'',text,onclick:e=>{e.preventDefault();go(u);}});};
+  function norm(u){u=String(u).trim();if(!u)return WEB;if(!/^[a-z]+:\/\//i.test(u))u=/^[\w-]+$/.test(u)?WEB+u.toLowerCase():'http://'+u;return u.slice(0,300);}
+  function load(u){
+    clearTimeout(timer);addr.value=u;back.disabled=pos<=0;fwd.disabled=pos>=stack.length-1;throb.classList.add('go');
+    status.textContent='Finding site: '+u.replace(/^[a-z]+:\/\//i,'').split('/')[0]+'…';
+    timer=setTimeout(()=>{status.textContent='Web site found. Waiting for reply…';timer=setTimeout(()=>{
+      visited.add(u);view.textContent='';view.className='web in';view.scrollTop=0;
+      const m=u.match(/^http:\/\/(?:www\.)?dialtone\.web\/?([\w-]*)\/?(?:\?q=(.*))?$/i);let title;
+      if(m){const k=m[1].toLowerCase(),pg=PAGES[k]||(k.startsWith('board-')?x=>pgForum(x,k.slice(6)):k.startsWith('thread-')?x=>pgThread(x,k.slice(7)):null);title=pg?pg(view,decodeURIComponent(m[2]||'')):pg404(view,u);}else title=pgOutside(view,u);
+      w.setTitle(title+' - WebSurfer');throb.classList.remove('go');status.textContent='Done';},350);},350);
+  }
+  const H=(n,t,st)=>h('h'+n,{text:t,style:st||''}),P=(...k)=>h('p',null,...k),HR=()=>h('hr');
+  const foot=v=>v.append(HR(),h('p',{class:'small'},'[ ',A('Home',''),' | ',A('Message Boards','board'),' | ',A('Cool Sites','cool'),' | ',A('Search','search'),' | ',A('Guestbook','guestbook'),' ]'),h('p',{class:'small',text:'Best viewed at 800 x 600 in 256 colors. This is a pretend web that lives inside DialTone.'}));
+  const PAGES={
+    ''(v){v.append(h('div',{class:'banner'},h('b',{text:'DialTone Online'}),h('span',{text:'Your front door to the Information Superhighway'})),
+        h('p',{class:'new'},h('span',{class:'blink',text:'NEW! '}),'Check your ',A('DialMail','mail'),', post on the ',A('Message Boards','board'),', sign ',A('the Guestbook','guestbook'),' and hear the ',A('MIDI Jukebox','jukebox'),'.'),
+        H(2,'Channels'),h('table',{class:'chan'},h('tbody',null,SITES.slice(1).reduce((rows,s,i,a)=>{if(i%2===0)rows.push(h('tr',null,...[s,a[i+1]].filter(Boolean).map(x=>h('td',null,h('b',null,A(x[1],x[0])),h('br'),x[2]))));return rows;},[]))),
+        H(2,'Today on DialTone'),h('ul',null,h('li',null,'Learn to talk like a pro in the ',A('Chat Lingo Dictionary','lingo'),'.'),h('li',null,'Stuck at 14.4? Read our ',A('Web Surfing Tips','tips'),'.'),h('li',null,'Site of the week: ',A("Stardust's Home Page",'stardust'),'.')));
+        const f=h('form',{class:'row'},h('label',{for:'home-q',text:'WebSeek:'}),h('input',{type:'text',id:'home-q',class:'grow',maxlength:'40'}),h('button',{class:'btn',type:'submit',text:'Seek'}));
+        f.addEventListener('submit',e=>{e.preventDefault();go(WEB+'search?q='+encodeURIComponent($('#home-q',f).value));});v.append(f);foot(v);return'DialTone Online';},
+    cool(v){v.append(H(1,'Cool Sites of the Week'),P('Every site below has been surfed, tested and approved by our staff of one.'),h('ol',null,SITES.slice(2).map(s=>h('li',null,h('b',null,A(s[1],s[0])),' — '+s[2]))),P('Know a cool site? Tell everyone in the ',A('Guestbook','guestbook'),'.'));foot(v);return'Cool Sites of the Week';},
+    lingo(v){const L=[['A/S/L','Age, sex, location? The classic chat room hello.'],['AFK','Away from keyboard.'],['BRB','Be right back.'],['BBL','Be back later.'],['G2G','Got to go.'],['IMHO','In my humble opinion.'],['LOL','Laughing out loud.'],['ROFL','Rolling on the floor laughing.'],['TTYL','Talk to you later.'],['POS','Parent over shoulder. Change the subject.'],[':-)','Happy.'],[';-)','Winking.'],[':-P','Sticking out tongue.'],['{{{hugs}}}','A hug. More braces, bigger hug.']];
+      v.append(H(1,'Chat Lingo Dictionary'),P('Typing takes time and the phone bill is ticking. Learn these and you will fit right in.'),h('table',{class:'chan',style:'width:100%'},h('tbody',null,L.map(r=>h('tr',null,h('td',{style:'white-space:nowrap'},h('b',{text:r[0]})),h('td',{text:r[1]}))))));foot(v);return'Chat Lingo Dictionary';},
+    stardust(v){v.classList.add('stars');v.append(h('h1',{class:'glow',text:'~*~ Stardust\'s Home Page ~*~'}),h('div',{class:'construct',text:'UNDER CONSTRUCTION'}),P('Hi!!! Welcome to my little corner of cyberspace. I made this page all by myself with a text editor and a lot of patience.'),H(2,'About Me'),h('ul',null,h('li',{text:'I like: comets, cassette mixtapes, my cat Modem'}),h('li',{text:'I dislike: busy signals, when someone picks up the phone'}),h('li',{text:'Favorite color: all of them at once'})),H(2,'My Links'),h('ul',null,h('li',null,A('MIDI Jukebox','jukebox'),' (turn your speakers up)'),h('li',null,A('Chat Lingo','lingo')),h('li',null,A('Sign my guestbook plz!!','guestbook'))),h('p',{class:'ring'},'[ ',A('<< Prev','tips'),' | The Night Sky WebRing | ',A('Next >>','jukebox'),' ]'),h('p',{class:'small',text:'You are a visitor. Thank you for visiting. Last updated: a while ago.'}));return"Stardust's Home Page";},
+    jukebox(v){const T={'Modem Sunrise':[[523,659,784,1047,784,659],[587,740,880,1175,880,740],[440,523,659,880,659,523],[392,494,587,784,988,1175]],'Busy Signal Blues':[[196,247,294,349,294,247],[196,247,294,349,294,247],[262,330,392,466,392,330],[196,247,294,349,392,294]],'Starfield Waltz':[[330,494,659,494,659,494],[294,440,587,440,587,440],[262,392,523,392,523,392],[247,392,494,587,784,988]]};
+      v.append(H(1,'MIDI Jukebox'),P('Three original tunes, generated on the spot by your sound card. Press a button and wait for the magic.'),h('div',{class:'row'},Object.keys(T).map(n=>h('button',{class:'btn',type:'button',text:'▶ '+n,onclick:()=>{if(!actx())return;const t=ac.currentTime+.05;T[n].forEach((bar,b)=>bar.forEach((f,i)=>{const x=t+(b*6+i)*.16;tone(f,x,.3,'square',.05);if(i===0)tone(f/2,x,.9,'triangle',.12);}));}}))),P(h('i',{text:'No sound? Check that your speakers are plugged in and switched on.'})));foot(v);return'MIDI Jukebox';},
+    tips(v){v.append(H(1,'Web Surfing Tips'),h('ol',null,['Surf after 9 PM. The lines are clearer and nobody needs the phone.','Turn off pictures if a page takes longer than a sandwich.','DO NOT TYPE IN ALL CAPS. It reads as shouting.','Never give out your password, even to someone who says they work here.','Bookmark the good stuff. You will never find it again otherwise.','Say hello when you enter a chat room and goodbye when you leave.'].map(t=>h('li',{text:t}))),P('Ready to practice? Visit the ',A('Cool Sites','cool'),' list.'));foot(v);return'Web Surfing Tips';},
+    search(v,q){q=q.trim().slice(0,40);const f=h('form',{class:'row'},h('input',{type:'text',id:'seek-q',class:'grow',maxlength:'40','aria-label':'Search words'}),h('button',{class:'btn',type:'submit',text:'Seek'}));$('#seek-q',f).value=q;f.addEventListener('submit',e=>{e.preventDefault();go(WEB+'search?q='+encodeURIComponent($('#seek-q',f).value));});
+      v.append(H(1,'WebSeek'),P('Search every page on DialTone Online.'),f);
+      if(q){const hits=SITES.filter(s=>(s[1]+' '+s[2]+' '+s[0]).toLowerCase().includes(q.toLowerCase()));v.append(H(2,hits.length+' match'+(hits.length===1?'':'es')+' for "'+q+'"'));if(hits.length)v.append(h('ol',null,hits.map(s=>h('li',null,h('b',null,A(s[1],s[0])),h('br'),s[2],h('br'),h('span',{class:'small',text:WEB+s[0]})))));else v.append(P('Nothing found. Try a shorter word, like "chat" or "midi".'));}
+      foot(v);return'WebSeek Search';},
+    mail(v){v.append(H(1,'DialMail'),P('Free email for every DialTone member. Get your own address at '+MAILDOM.slice(1)+', send letters to friends, and attach photos.'),
+        h('p',null,h('button',{class:'btn',type:'button',text:'Open DialMail',style:'font-weight:bold',onclick:showMail})),P(mailOn&&mailMe&&mailMe.priv?'You are signed in as '+mailMe.handle+MAILDOM+'.':mailOn?'You do not have a mailbox yet. Open DialMail to choose your address.':'Open DialMail and sign in with your DialMail address or screen name and your DialTone password.'),
+        H(2,'Is my mail private?'),P('Yes. Every message is scrambled on your computer before it leaves, and only you and the people you write to hold the keys to unscramble it.'));foot(v);return'DialMail';},
+    guestbook(v){const list=h('div',null,P(h('i',{text:'Opening the guestbook…'})));const ta=h('textarea',{id:'gb-text',rows:'3',maxlength:'240'});
+      const can=live&&me.on;const f=h('form',{style:'display:flex;flex-direction:column;gap:6px'},h('label',{for:'gb-text',text:can?'Leave a message as '+me.sn+' (signing again replaces your entry):':'Sign on to DialTone Messenger first to sign the guestbook.'}),ta,h('div',{class:'row'},h('button',{class:'btn',type:'submit',text:'Sign Guestbook'})));
+      if(!can){ta.disabled=true;$('button',f).disabled=true;}
+      const draw=async()=>{if(!db){list.textContent='';return list.append(P('The guestbook is closed in demo mode.'));}try{const s=await db.collection('guestbook').get();const es=s.docs.map(d=>({by:d.id,...(d.data()||{})})).filter(e=>typeof e.msg==='string').sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,100);list.textContent='';if(!es.length)return list.append(P('Nobody has signed yet. Be the first!'));for(const e of es)list.append(h('div',{class:'gb'},h('b',{text:snOf(e.by)}),h('span',{class:'small',text:'  '+(e.ts?new Date(e.ts).toLocaleDateString():'')}),h('div',{text:clip(e.msg,240)})));}catch(e){list.textContent='';list.append(P('The guestbook did not answer. Press Refresh to try again.'));}};
+      f.addEventListener('submit',async e=>{e.preventDefault();const msg=ta.value.trim();if(!msg||!can)return;try{await db.doc('guestbook/'+uid).set({msg:msg.slice(0,240),ts:Date.now()});ta.value='';play('chat');draw();}catch(err){msgBox('Guestbook','Your entry could not be saved. You may have view-only access.');}});
+      v.append(H(1,'The Guestbook'),P('Thanks for stopping by! Let us know you were here.'),f,HR(),list);draw();foot(v);return'The Guestbook';}
+  };
+  /* ----- message boards ----- */
+  const FORUMS=[['general','General Chat','Say hello and talk about anything at all.'],['music','Music & Mixtapes','Albums, concerts, and what is in your CD changer.'],['computers','Computers & The Net','Modems, upgrades, cool sites and tech trouble.'],['help','Newbie Help','New to DialTone? Ask here. No question is too basic.']];
+  let FX=[];const allForums=()=>[...FORUMS,...FX];
+  const when=t=>t?new Date(t).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'';
+  const newId=()=>hex(crypto.getRandomValues(new Uint8Array(6)));
+  async function boardData(){try{const fs=await db.collection('forums').get();FX=[];const add=(id,name,desc,by,legacy)=>{id=String(id||'');if(FX.length<50&&/^[a-z0-9][a-z0-9-]{1,29}$/.test(id)&&!allForums().some(b=>b[0]===id))FX.push([id,clip(String(name||''),40)||id,clip(String(desc||''),100),by,legacy]);};
+      for(const d of fs.docs){const x=d.data()||{};if(Array.isArray(x.list))x.list.forEach(f=>f&&add(f.id,f.name,f.desc,d.id,false));else if(x.name)add(d.id,x.name,x.desc,typeof x.by==='string'?x.by:null,true);}}catch(e){FX=[];}
+    const s=await db.collection('bposts').get();const out=[];for(const d of s.docs){const ps=(d.data()||{}).posts;if(!Array.isArray(ps))continue;for(const p of ps){if(!p||typeof p.id!=='string'||!/^[a-z0-9]{6,20}$/.test(p.id))continue;out.push({id:p.id,by:d.id,th:typeof p.th==='string'?p.th:null,fo:String(p.fo||''),ti:clip(p.ti,80),tx:clip(p.tx,2000),ts:+p.ts||0,x:!!p.x,im:/^[a-f0-9]{24}$/.test(p.im||'')?p.im:null});}}return out;}
+  async function forumSave(mut){const ref=db.doc('forums/'+uid),s=await ref.get();let l=s.exists&&Array.isArray((s.data()||{}).list)?s.data().list:[];await ref.set({list:mut(l).slice(0,20)});}
+  async function boardSave(mut){const ref=db.doc('bposts/'+uid),s=await ref.get();let ps=s.exists&&Array.isArray((s.data()||{}).posts)?s.data().posts:[];ps=mut(ps);if(ps.length>300)ps=ps.slice(-300);await ref.set({posts:ps});}
+  const HOSTED=typeof api==='function';
+  async function uploadPhoto(file){
+    const blob=await shrinkPhoto(file,HOSTED?800:640,HOSTED?0:165000);
+    if(HOSTED){const r=await fetch('/api/upload',{method:'POST',headers:{'content-type':'image/jpeg',authorization:'Bearer '+token},body:blob});const j=await r.json().catch(()=>({}));
+      if(!r.ok){const er=new Error(j.error||'Upload failed');er.status=r.status;throw er;}return j.id;}
+    const d=await new Promise((ok,bad)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result);fr.onerror=bad;fr.readAsDataURL(blob);}),id=hex(crypto.getRandomValues(new Uint8Array(12)));
+    await db.doc('bpics/'+uid+'/p/'+id).set({d,ts:Date.now()});return id;}
+  const picDel=id=>{if(!id)return Promise.resolve();return(HOSTED?api('DELETE','/api/upload/'+id):db.doc('bpics/'+uid+'/p/'+id).delete()).catch(()=>{});};
+  async function picUrl(by,id){if(HOSTED)return'/uploads/'+id+'.jpg';const s=await db.doc('bpics/'+by+'/p/'+id).get(),d=s.exists?(s.data()||{}).d:null;if(typeof d!=='string'||!d.startsWith('data:image/jpeg;base64,'))throw new Error('missing');return d;}
+  const dialupPhoto=(id,by)=>dialupImg(picUrl(by,id),'Photo attached to this post');
+  const crumbs=(...k)=>h('p',{class:'small'},...k);
+  function boardPage(v,title,render){const box=h('div',null,P(h('i',{text:'Loading the boards…'})));v.append(h('div',{class:'banner',style:'text-align:left;padding:6px 10px'},h('b',{text:'DialTone Message Boards',style:'font-size:20px'})),box);foot(v);
+    if(!db){box.textContent='';box.append(P('The message boards are closed in demo mode.'));return title;}
+    boardData().then(d=>{box.textContent='';render(box,d);}).catch(()=>{box.textContent='';box.append(P('The boards did not answer. Press Refresh to try again.'));});return title;}
+  function postForm(box,withSubject,label,onPost){
+    if(!(live&&me.on))return void box.append(h('p',{class:'new',text:'You must be signed on to DialTone Messenger to post. Open Messenger from the desktop, sign on, then press Refresh.'}));
+    const sub=h('input',{type:'text',id:'bb-sub',maxlength:'80',style:'width:100%'}),ta=h('textarea',{id:'bb-text',rows:'5',maxlength:'2000'}),btn=h('button',{class:'btn',type:'submit',text:label});
+    const canPic=true,pic=h('input',{type:'file',id:'bb-pic',accept:'image/jpeg,image/png,image/gif,image/webp'});
+    const f=h('form',{style:'display:flex;flex-direction:column;gap:5px'},h('div',{class:'small',text:'Posting as '+me.sn}),withSubject?[h('label',{for:'bb-sub',text:'Subject:'}),sub]:null,h('label',{for:'bb-text',text:'Message:'}),ta,canPic?[h('label',{for:'bb-pic',text:'Attach a photo (optional, JPEG, PNG or GIF):'}),pic]:null,h('div',{class:'row'},btn));
+    f.addEventListener('submit',async e=>{e.preventDefault();const ti=sub.value.trim(),tx=ta.value.trim();if(withSubject&&!ti)return msgBox('Message Boards','Type a subject for your topic.');const file=canPic&&pic.files[0];if(!tx&&!file)return msgBox('Message Boards','Type a message before posting.');
+      btn.disabled=true;let im=null;
+      if(file){btn.textContent='Uploading photo…';try{im=await uploadPhoto(file);}catch(err){btn.disabled=false;btn.textContent=label;return msgBox('Message Boards',err&&err.status?err.message:'That photo could not be uploaded. Use a JPEG, PNG or GIF picture.');}}
+      try{await onPost(ti,tx,im);play('chat');}catch(err){btn.disabled=false;btn.textContent=label;msgBox('Message Boards','Your post could not be saved. Try again.');}});
+    box.append(f);}
+  PAGES.board=v=>boardPage(v,'DialTone Message Boards',(box,d)=>{
+    const rows=allForums().map(f=>{const th=d.filter(p=>!p.th&&p.fo===f[0]&&!p.x),ids=new Set(th.map(p=>p.id)),all=d.filter(p=>!p.x&&(ids.has(p.id)||ids.has(p.th))),last=all.sort((a,b)=>b.ts-a.ts)[0];
+      return h('tr',null,h('td',null,h('b',null,A(f[1],'board-'+f[0])),h('br'),f[2],f[3]?h('span',{class:'small',text:' (board started by '+snOf(f[3])+')'}):null),h('td',{class:'n',text:th.length}),h('td',{class:'n',text:all.length}),h('td',{class:'small'},last?[when(last.ts),h('br'),'by '+snOf(last.by)]:'No posts yet'));});
+    const members=new Set(d.map(p=>p.by)).size;
+    box.append(P('Welcome to the boards! Pick a forum, read the topics, and join in.'),h('table',{class:'bb'},h('thead',null,h('tr',null,h('th',{text:'Forum'}),h('th',{text:'Topics'}),h('th',{text:'Posts'}),h('th',{text:'Last Post'}))),h('tbody',null,rows)),h('p',{class:'small',text:d.filter(p=>!p.x).length+' posts by '+members+' member'+(members===1?'':'s')+'. Be polite, stay on topic, and no flaming.'}),H(2,'Start a New Board'));
+    if(!(live&&me.on))return void box.append(h('p',{class:'new',text:'Sign on to DialTone Messenger to start a board, then press Refresh.'}));
+    const bn=h('input',{type:'text',id:'nb-name',maxlength:'40',style:'width:100%'}),bd=h('input',{type:'text',id:'nb-desc',maxlength:'100',style:'width:100%'}),bb=h('button',{class:'btn',type:'submit',text:'Create Board'});
+    const nf=h('form',{style:'display:flex;flex-direction:column;gap:5px'},h('label',{for:'nb-name',text:'Board name:'}),bn,h('label',{for:'nb-desc',text:'What is it about?'}),bd,h('div',{class:'row'},bb));
+    nf.addEventListener('submit',async e=>{e.preventDefault();const name=bn.value.trim().replace(/\s+/g,' '),id=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,30);
+      if(id.length<2)return msgBox('Message Boards','Board names need at least two letters or numbers.');
+      if(allForums().some(f=>f[0]===id))return msgBox('Message Boards','There is already a board with that name.');
+      if(FX.length>=50)return msgBox('Message Boards','The boards are full. No more can be created.');
+      bb.disabled=true;try{await forumSave(l=>[...l.filter(f=>f&&f.id!==id),{id,name,desc:bd.value.trim().slice(0,100),created:Date.now()}]);play('chat');go(WEB+'board-'+id);}catch(err){bb.disabled=false;msgBox('Message Boards','The board could not be created. Try again.');}});
+    box.append(nf);});
+  function pgForum(v,fid){
+    return boardPage(v,'Message Boards',(box,d)=>{
+      const f=allForums().find(x=>x[0]===fid);if(!f)return void box.append(H(1,'Board not found'),P('There is no board at this address.'),P(A('Back to the Message Boards','board')));
+      w.setTitle(f[1]+' - WebSurfer');
+      const delBoard=f[3]&&f[3]===uid&&live&&me.on?h('button',{class:'btn',type:'button',text:'Delete This Board'}):null;
+      if(delBoard){let armed=false;delBoard.addEventListener('click',async()=>{if(!armed){armed=true;delBoard.textContent='Really delete? Click again';return;}delBoard.disabled=true;try{if(f[4])await db.doc('forums/'+f[0]).delete();else await forumSave(l=>l.filter(x=>x&&x.id!==f[0]));go(WEB+'board');}catch(err){delBoard.disabled=false;msgBox('Message Boards','The board could not be deleted. Try again.');}});}
+      const th=d.filter(p=>!p.th&&p.fo===fid&&!p.x).map(t=>{const rs=d.filter(p=>p.th===t.id&&!p.x);return{t,n:rs.length,last:rs.reduce((m,p)=>p.ts>m.ts?p:m,t)};}).sort((a,b)=>b.last.ts-a.last.ts);
+      box.append(crumbs(A('Message Boards','board'),' > '+f[1]),H(1,f[1]),P(f[2]),delBoard?h('p',{class:'new'},'You started this board. ',delBoard,h('span',{class:'small',text:' Deleting it hides every topic in it for everyone.'})):null);
+      if(!th.length)box.append(h('p',{class:'new',text:'No topics here yet. Start the first one with the form below.'}));
+      else box.append(h('table',{class:'bb'},h('thead',null,h('tr',null,h('th',{text:'Topic'}),h('th',{text:'Started By'}),h('th',{text:'Replies'}),h('th',{text:'Last Post'}))),h('tbody',null,th.map(x=>h('tr',null,h('td',null,h('b',null,A(x.t.ti||'(no subject)','thread-'+x.t.id)),d.some(p=>!p.x&&p.im&&(p.id===x.t.id||p.th===x.t.id))?h('span',{class:'small',text:' [pic]'}):null),h('td',{text:snOf(x.t.by)}),h('td',{class:'n',text:x.n}),h('td',{class:'small'},when(x.last.ts),h('br'),'by '+snOf(x.last.by)))))));
+      box.append(H(2,'Post a New Topic'));
+      postForm(box,true,'Post New Topic',async(ti,tx,im)=>{const id=newId();await boardSave(ps=>[...ps,{id,fo:fid,ti,tx,ts:Date.now(),...(im?{im}:{})}]);go(WEB+'thread-'+id);});});}
+  function pgThread(v,tid){
+    return boardPage(v,'Topic - Message Boards',(box,d)=>{
+      const t=d.find(p=>p.id===tid&&!p.th);if(!t||t.x)return void box.append(H(1,'Topic not found'),P('This topic does not exist or was removed by its author.'),P(A('Back to the Message Boards','board')));
+      const f=allForums().find(x=>x[0]===t.fo);if(!f)return void box.append(H(1,'Topic not found'),P('The board this topic was posted in has been deleted.'),P(A('Back to the Message Boards','board')));
+      const posts=[t,...d.filter(p=>p.th===tid).sort((a,b)=>a.ts-b.ts)],count=id=>d.filter(p=>p.by===id&&!p.x).length;
+      w.setTitle((t.ti||'Topic')+' - WebSurfer');
+      box.append(crumbs(A('Message Boards','board'),' > ',A(f[1],'board-'+f[0]),' > '+(t.ti||'(no subject)')),H(1,t.ti||'(no subject)'),
+        h('table',{class:'bb'},h('tbody',null,posts.map((p,i)=>h('tr',null,
+          h('td',{class:'who2'},h('b',{text:snOf(p.by)}),h('br'),h('span',{class:'small'},(online.has(p.by)?'Online':'Offline'),h('br'),'Posts: '+count(p.by))),
+          h('td',null,h('div',{class:'small'},(i?'Reply #'+i:'Topic')+' · '+when(p.ts),p.by===uid&&!p.x&&live?[' · ',h('a',{href:'#',text:'delete',onclick:async e=>{e.preventDefault();try{await boardSave(ps=>i?ps.filter(q=>q.id!==p.id):ps.map(q=>q.id===p.id?{id:q.id,fo:q.fo,ti:q.ti,ts:q.ts,x:1,tx:''}:q));await picDel(p.im);load(i?stack[pos]:WEB+'board-'+f[0]);if(!i)addr.value=WEB+'board-'+f[0];}catch(err){msgBox('Message Boards','That post could not be deleted. Try again.');}}}),p.im?[' · ',h('a',{href:'#',text:'remove photo',onclick:async e=>{e.preventDefault();try{await boardSave(ps=>ps.map(q=>{if(q.id!==p.id)return q;const r={...q};delete r.im;return r;}));await picDel(p.im);load(stack[pos]);}catch(err){msgBox('Message Boards','That photo could not be removed. Try again.');}}})]:null]:null),
+            h('div',{class:'body',text:p.x?'This message was deleted by its author.':p.tx}),!p.x&&p.im?dialupPhoto(p.im,p.by):null))))),
+        H(2,'Post a Reply'));
+      postForm(box,false,'Post Reply',async(ti,tx,im)=>{await boardSave(ps=>[...ps,{id:newId(),th:tid,fo:t.fo,tx,ts:Date.now(),...(im?{im}:{})}]);load(stack[pos]);});});}
+  function pg404(v,u){v.append(H(1,'404 Not Found'),P('The requested URL '+u+' was not found on this server.'),HR(),P(h('i',{text:'DialTone/1.0 Server at www.dialtone.web Port 80'})),P('Try the ',A('home page',''),' or ',A('WebSeek','search'),'.'));return'404 Not Found';}
+  function pgOutside(v,u){const ok=/^https?:\/\/[^\s<>"']+$/i.test(u);v.append(H(1,'This page is outside DialTone Online'),P('WebSurfer can only show pages on www.dialtone.web. Real web sites cannot be displayed inside this window.'));if(ok)v.append(P('You can open it in a real browser window instead:'),P(h('a',{href:u,target:'_blank',rel:'noopener noreferrer',text:u})));v.append(P('Or go back to the ',A('DialTone Online home page',''),'.'));return'Outside DialTone Online';}
+  addr.addEventListener('keydown',e=>{if(e.key==='Enter')go(addr.value);});
+  w.body.append(h('div',{class:'mbar'},['File','Edit','View','Go','Favorites','Help'].map(t=>h('span',{text:t})),h('span',{class:'grow'}),throb),
+    h('div',{class:'row',style:'gap:2px'},back,fwd,B('Refresh',()=>load(stack[pos])),B('Home',()=>go(WEB)),B('Search',()=>go(WEB+'search')),B('Mail',showMail),fsBtn),
+    h('div',{class:'row',style:'flex-wrap:nowrap'},h('label',{for:'web-addr',text:'Address:'}),addr,B('Go',()=>go(addr.value))),view,h('div',{class:'row',style:'flex-wrap:nowrap'},status,h('div',{class:'status',text:'28.8 kbps'})));
+  go(WEB);
+  if(mailOn&&mailMe&&mailMe.priv)mailRefresh().then(()=>{if(mail.unread>0&&wins.has('web'))mailAlert();}).catch(()=>{});
+}
+
+/* ---------- radio ---------- */
+const STATIONS={1990:'60e4812dab53e328124b976c',1991:'60186ed1ab53e37cdcd21848',1992:'5fa3228bab53e30e1eba150b',1993:'60b9460bab53e37c300445b9',1994:'61fc2161ab53e344fc6d44b1',1995:'5e1778f9ab53e329527298b8',1996:'60186b37ab53e37cdcd21847',1997:'617acdd7ab53e3434517cb82',1998:'5fb2ed70ab53e361e87b23c9',1999:'61fc2170ab53e344fc6d44b2'};
+function showRadio(){
+  let tuned=null,since=0,iv=0;
+  const w=openWin('radio',{title:'DialTone Radio',w:300,onClose:()=>clearInterval(iv)});if(w.body.firstChild)return;
+  const big=h('div',{class:'lcd-big',text:'-- --'}),sub=h('div',{class:'lcd-sub',text:'PICK A YEAR TO TUNE IN'}),time=h('div',{class:'lcd-sub',text:'00:00'});
+  const bars=Array.from({length:16},()=>h('i'));const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const note=h('div',{class:'note',text:'The music plays in a separate AccuRadio tab. Switch back here after it opens.'});
+  const btns=Object.keys(STATIONS).map(y=>h('a',{class:'btn',href:'https://www.accuradio.com/channel/'+STATIONS[y],target:'dialtone-radio',rel:'noopener',text:"'"+y.slice(2),'aria-label':'Tune to '+y,onclick:()=>{tuned=y;since=Date.now();paint();}}));
+  const paint=()=>{big.textContent=tuned?tuned:'-- --';sub.textContent=tuned?'ON AIR · HITS OF '+tuned+' · VIA ACCURADIO':'PICK A YEAR TO TUNE IN';btns.forEach(b=>b.classList.toggle('on',b.textContent==="'"+String(tuned).slice(2)));
+    note.textContent=tuned?'Playing in the AccuRadio tab. Close that tab to stop the music; Power Off only clears this display.':'The music plays in a separate AccuRadio tab. Switch back here after it opens.';if(!tuned){time.textContent='00:00';bars.forEach(b=>b.style.height='2px');}};
+  iv=setInterval(()=>{if(!tuned)return;const s=Math.floor((Date.now()-since)/1000);time.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(!calm)bars.forEach((b,i)=>b.style.height=(3+Math.random()*Math.random()*30*(1-i/26))+'px');},140);
+  w.body.append(h('div',{class:'lcd'},h('div',{class:'row',style:'justify-content:space-between;flex-wrap:nowrap'},big,h('div',{class:'viz','aria-hidden':'true'},bars)),h('div',{class:'row',style:'justify-content:space-between;flex-wrap:nowrap'},sub,time)),
+    h('div',{class:'grid5'},btns),h('div',{class:'row end'},h('button',{class:'btn',type:'button',text:'Power Off',onclick:()=>{tuned=null;paint();}})),note);
+}
+
+/* ---------- Games ---------- */
+const best={get:k=>+store.get('dt-best-'+k,'0')||0,set:(k,v)=>{if(v>best.get(k))store.set('dt-best-'+k,String(v));}};
+const SFX={shot(t){noise(t,.12,900,.8,.5);tone(220,t,.12,'square',.08,60);},hit(t){tone(180,t,.15,'sawtooth',.08,60);},die(t){tone(300,t,.4,'sawtooth',.07,40);noise(t,.3,500,1,.3);},pick(t){tone(880,t,.08,'square',.06);tone(1320,t+.08,.12,'square',.06);},hurt(t){tone(120,t,.25,'square',.12,70);},door(t){[392,523,659,784].forEach((f,i)=>tone(f,t+i*.08,.2,'square',.06));},click(t){tone(1400,t,.03,'square',.03);},boom(t){noise(t,.6,300,.5,.7,'lowpass');tone(80,t,.5,'sine',.25,30);},eat(t){tone(660,t,.06,'square',.05,990);}};
+function sfx(n){if(!soundOn||!actx())return;try{SFX[n](ac.currentTime+.01);}catch(e){}}
+function showGames(){
+  const w=openWin('games',{title:'Games',w:300});if(w.body.firstChild)return;
+  const G=(id,label,svg,fn,desc)=>{const b=h('button',{class:'dicon gicon',type:'button',title:desc,onclick:fn});b.innerHTML=svg;b.append(h('span',{text:label}));return b;};
+  w.body.append(h('div',{class:'gfold in'},
+    G('bunker','Bunker 3D','<svg viewBox="0 0 16 16"><rect x="1" y="1" width="14" height="14" fill="#0a0a0a"/><path d="M1 1l4 4v6l-4 4zM15 1l-4 4v6l4 4z" fill="#804000"/><rect x="5" y="5" width="6" height="6" fill="#33ff66"/><circle cx="8" cy="8" r="2" fill="#800080"/><circle cx="8" cy="8" r=".8" fill="#cc0000"/></svg>',showBunker,'First-person 3D maze shooter'),
+    G('mines','Mines','<svg viewBox="0 0 16 16"><rect x="1" y="1" width="14" height="14" fill="#c0c0c0" stroke="#808080"/><circle cx="8" cy="8" r="3.5" fill="#0a0a0a"/><path d="M8 2v12M2 8h12M4 4l8 8M12 4l-8 8" stroke="#0a0a0a"/><rect x="6" y="6" width="1.5" height="1.5" fill="#ffffff"/></svg>',showMines,'Clear the field without hitting a mine'),
+    G('snake','Snake','<svg viewBox="0 0 16 16"><rect x="1" y="1" width="14" height="14" fill="#0a0a0a"/><path d="M3 12h5V7h5" stroke="#33ff66" stroke-width="2" fill="none"/><rect x="11" y="3" width="2" height="2" fill="#cc0000"/></svg>',showSnake,'Eat, grow, and do not bite yourself')),
+    h('div',{class:'note',text:'Click a game to play. Your best scores are kept on this computer.'}));
+}
+
+/* --- Bunker 3D: original raycasting shooter --- */
+function showBunker(){
+  if(wins.has('bunker'))return focusWin('bunker');
+  const W=320,H=200,TS=64;let raf=0,alive=true;
+  const w=openWin('bunker',{title:'Bunker 3D',w:Math.min(660,desk.clientWidth-8),onClose:()=>{alive=false;cancelAnimationFrame(raf);if(document.pointerLockElement)document.exitPointerLock();}});
+  const cv=h('canvas',{width:W,height:H,class:'gamecv',tabindex:'0','aria-label':'Bunker 3D game screen. Arrow keys or W A S D to move, Space to fire.'});
+  const hud=h('div',{class:'ghud'}),touch=h('div',{class:'gtouch'});
+  w.body.style.padding='4px';w.body.append(cv,hud,touch,h('div',{class:'note',text:'Click the screen, then use arrow keys or W A S D to move, the mouse or Q/E to turn, and Space or click to fire. Find the yellow exit door.'}));
+  const ctx=cv.getContext('2d'),img=ctx.createImageData(W,H),buf=new Uint32Array(img.data.buffer),zb=new Float32Array(W);
+  const rgb=(r,g,b,a=255)=>(a<<24)|(b<<16)|(g<<8)|r;
+  // procedural textures
+  const tex=[];const mk=f=>{const t=new Uint32Array(TS*TS);for(let y=0;y<TS;y++)for(let x=0;x<TS;x++)t[y*TS+x]=f(x,y);return t;};
+  const rnd=(x,y,s)=>{const v=Math.sin(x*12.9898+y*78.233+s*37.7)*43758.5453;return v-Math.floor(v);};
+  tex[1]=mk((x,y)=>{const row=y>>3,off=(row&1)*8,m=(y%8===0)||((x+off)%16===0),n=rnd(x,y,1)*30;return m?rgb(70,60,55):rgb(130+n,48+n/2,36+n/3);});
+  tex[2]=mk((x,y)=>{const e=x%32<2||y%32<2,r=((x%32-16)**2+(y%32-16)**2)<5,n=rnd(x,y,2)*25;return e?rgb(60,64,70):r?rgb(200,205,210):rgb(110+n,116+n,124+n);});
+  tex[3]=mk((x,y)=>{const n=rnd(x,y,3)*20,l=(y%16<2)||(x%21===0);return l?rgb(20,200,90):rgb(30+n,48+n,40+n);});
+  tex[9]=mk((x,y)=>{const s=((x+y)>>3)&1,f=x<4||x>59||y<4||y>59;return f?rgb(60,60,60):(y>24&&y<40)?rgb(20,20,20):s?rgb(230,200,0):rgb(30,30,30);});
+  const spr={};
+  spr.drone=mk((x,y)=>{const dx=x-32,dy=y-30,d=dx*dx+dy*dy;if(d<17*17){const e=(dx*dx+(dy+2)**2)<36;return e?(((dx*dx+(dy+2)**2)<9)?rgb(255,240,0):rgb(220,20,20)):rgb(110+dx*2,30,140-dy);}if(y>46&&y<50&&Math.abs(dx)<20)return rgb(90,90,100);return 0;});
+  spr.hit=mk((x,y)=>{const dx=x-32,dy=y-30;return dx*dx+dy*dy<17*17?rgb(255,255,255):0;});
+  spr.med=mk((x,y)=>{if(x<16||x>48||y<30||y>62)return 0;const c=(Math.abs(x-32)<4&&y>36&&y<56)||(Math.abs(y-46)<4&&x>22&&x<42);return c?rgb(255,255,255):rgb(20,150,60);});
+  spr.ammo=mk((x,y)=>{if(x<18||x>46||y<38||y>62)return 0;return (y<42)?rgb(120,90,10):((x-18)%7<2)?rgb(90,60,0):rgb(220,180,20);});
+  let map,MW,MH,px,py,pa,hp,ammo,score,level,ents,shotFlash=0,hurtFlash=0,msg='',msgT=0,dead=false,cool=0;
+  function newLevel(n){
+    level=n;MW=MH=Math.min(31,13+n*2);map=new Uint8Array(MW*MH).fill(1);const at=(x,y)=>map[y*MW+x];
+    const st=[[1,1]];map[MW+1]=0;while(st.length){const [cx,cy]=st[st.length-1],d=[[2,0],[-2,0],[0,2],[0,-2]].sort(()=>Math.random()-.5).find(([dx,dy])=>{const nx=cx+dx,ny=cy+dy;return nx>0&&ny>0&&nx<MW-1&&ny<MH-1&&at(nx,ny);});
+      if(!d){st.pop();continue;}map[(cy+d[1]/2)*MW+cx+d[0]/2]=0;map[(cy+d[1])*MW+cx+d[0]]=0;st.push([cx+d[0],cy+d[1]]);}
+    for(let i=0;i<MW*MH/12;i++){const x=1+Math.floor(Math.random()*(MW-2)),y=1+Math.floor(Math.random()*(MH-2));if(at(x,y)&&((at(x-1,y)===0&&at(x+1,y)===0)||(at(x,y-1)===0&&at(x,y+1)===0)))map[y*MW+x]=0;}
+    for(let i=0;i<MW*MH;i++)if(map[i])map[i]=1+((i*7+n)%5===0?1:(i*13)%11===0?2:0);
+    const dist=new Int16Array(MW*MH).fill(-1),q=[[1,1]];dist[MW+1]=0;let far=[1,1];
+    while(q.length){const [x,y]=q.shift();far=[x,y];for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=(y+dy)*MW+x+dx;if(!map[k]&&dist[k]<0){dist[k]=dist[y*MW+x]+1;q.push([x+dx,y+dy]);}}}
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=(far[1]+dy)*MW+far[0]+dx;if(map[k]){map[k]=9;break;}}
+    px=1.5;py=1.5;pa=map[MW+2]===0?0:Math.PI/2;ents=[];
+    const open=[];for(let y=1;y<MH-1;y++)for(let x=1;x<MW-1;x++)if(!map[y*MW+x]&&dist[y*MW+x]>4)open.push([x,y]);open.sort(()=>Math.random()-.5);
+    const take=(k,c)=>{for(let i=0;i<c&&open.length;i++){const [x,y]=open.pop();ents.push({k,x:x+.5,y:y+.5,hp:k==='drone'?2+Math.floor(n/3):0,cd:1+Math.random()*2,fl:0});}};
+    take('drone',3+n*2);take('ammo',2+n);take('med',1+Math.floor(n/2));msg='LEVEL '+n;msgT=2;
+  }
+  function reset(){hp=100;ammo=30;score=0;dead=false;newLevel(1);}
+  reset();
+  const solid=(x,y)=>{const c=map[(y|0)*MW+(x|0)];return c!==0;};
+  const free=(x,y)=>!solid(x-.2,y-.2)&&!solid(x+.2,y-.2)&&!solid(x-.2,y+.2)&&!solid(x+.2,y+.2);
+  function sight(ax,ay,bx,by){const d=Math.hypot(bx-ax,by-ay),n=Math.ceil(d*4);for(let i=1;i<n;i++){const t=i/n;if(solid(ax+(bx-ax)*t,ay+(by-ay)*t))return false;}return true;}
+  const keys={};let turnM=0;
+  const kd=e=>{if(!wins.has('bunker'))return;const k=e.key.toLowerCase();if(document.activeElement!==cv&&!document.pointerLockElement)return;
+    if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();keys[k]=true;if(k===' ')fire();if(k==='enter'&&dead)reset();};
+  const ku=e=>{keys[e.key.toLowerCase()]=false;};
+  document.addEventListener('keydown',kd);document.addEventListener('keyup',ku);
+  cv.addEventListener('click',()=>{cv.focus();actx();if(dead){reset();return;}if(!document.pointerLockElement&&cv.requestPointerLock&&matchMedia('(pointer:fine)').matches){try{const r=cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(e){}}else fire();});
+  document.addEventListener('mousemove',e=>{if(document.pointerLockElement===cv)turnM+=e.movementX*.0035;});
+  const tb=(label,k)=>{const b=h('button',{class:'btn',type:'button',text:label,'aria-label':k});const on=e=>{e.preventDefault();actx();keys[k]=true;if(k===' ')fire();},off=()=>{keys[k]=false;};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off);b.addEventListener('pointercancel',off);return b;};
+  touch.append(tb('◄','q'),tb('▲','arrowup'),tb('▼','arrowdown'),tb('►','e'),tb('FIRE',' '));
+  function fire(){if(dead||cool>0)return;if(ammo<=0){msg='OUT OF AMMO';msgT=1;sfx('click');return;}ammo--;cool=.28;shotFlash=.12;sfx('shot');
+    let best=null,bd=1e9;for(const e of ents){if(e.k!=='drone'||e.hp<=0)continue;const dx=e.x-px,dy=e.y-py,d=Math.hypot(dx,dy);let a=Math.atan2(dy,dx)-pa;a=Math.atan2(Math.sin(a),Math.cos(a));if(Math.abs(a)<Math.atan(.3/d)+.02&&d<bd&&sight(px,py,e.x,e.y)){best=e;bd=d;}}
+    if(best){best.hp--;best.fl=.15;sfx(best.hp<=0?'die':'hit');if(best.hp<=0){score+=100;ents=ents.filter(x=>x!==best);if(Math.random()<.4)ents.push({k:'ammo',x:best.x,y:best.y});}}}
+  const FOV=.66;let last=performance.now();
+  function frame(now){
+    if(!alive)return;raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;if(w.min)return;
+    if(!dead){
+      const rot=((keys.arrowleft||keys.q)?-1:0)+((keys.arrowright||keys.e)?1:0);pa+=rot*2.4*dt+turnM;turnM=0;
+      const fw=((keys.arrowup||keys.w)?1:0)-((keys.arrowdown||keys.s)?1:0),st=(keys.d?1:0)-(keys.a?1:0),sp=3*dt;
+      const nx=px+(Math.cos(pa)*fw-Math.sin(pa)*st)*sp,ny=py+(Math.sin(pa)*fw+Math.cos(pa)*st)*sp;
+      if(map[(py|0)*MW+(nx|0)]===9||map[(ny|0)*MW+(px|0)]===9){score+=250*level;sfx('door');newLevel(level+1);hp=Math.min(100,hp+20);}
+      if(free(nx,py))px=nx;if(free(px,ny))py=ny;cool=Math.max(0,cool-dt);
+      for(const e of ents){const d=Math.hypot(e.x-px,e.y-py);e.fl=Math.max(0,e.fl-dt);
+        if(e.k!=='drone'){if(d<.5){if(e.k==='med'&&hp<100){hp=Math.min(100,hp+25);e.gone=1;sfx('pick');msg='HEALTH +25';msgT=1;}else if(e.k==='ammo'){ammo=Math.min(99,ammo+10);e.gone=1;sfx('pick');msg='AMMO +10';msgT=1;}}continue;}
+        const see=d<9&&sight(e.x,e.y,px,py);
+        if(see&&d>1.2){const vx=(px-e.x)/d*(1+level*.08)*dt,vy=(py-e.y)/d*(1+level*.08)*dt;if(free(e.x+vx,e.y))e.x+=vx;if(free(e.x,e.y+vy))e.y+=vy;}
+        e.cd-=dt;if(see&&e.cd<=0){e.cd=1.4+Math.random()*1.4;if(Math.random()<.55){const dmg=6+Math.floor(Math.random()*6)+level;hp-=dmg;hurtFlash=.25;sfx('hurt');if(hp<=0){hp=0;dead=true;best.set('bunker',score);sfx('boom');}}}}
+      ents=ents.filter(e=>!e.gone);msgT=Math.max(0,msgT-dt);
+    }
+    // ceiling + floor
+    for(let y=0;y<H;y++){const t=Math.abs(y-H/2)/(H/2),c=y<H/2?rgb(40*t+10,40*t+12,48*t+16):rgb(70*t+16,58*t+14,44*t+10);buf.fill(c,y*W,y*W+W);}
+    const dx0=Math.cos(pa),dy0=Math.sin(pa),plx=-dy0*FOV,ply=dx0*FOV;
+    for(let x=0;x<W;x++){const cam=2*x/W-1,rx=dx0+plx*cam,ry=dy0+ply*cam;let mx=px|0,my=py|0;const ddx=Math.abs(1/rx),ddy=Math.abs(1/ry);let sx,sy,sdx,sdy,side=0,c=0;
+      if(rx<0){sx=-1;sdx=(px-mx)*ddx;}else{sx=1;sdx=(mx+1-px)*ddx;}if(ry<0){sy=-1;sdy=(py-my)*ddy;}else{sy=1;sdy=(my+1-py)*ddy;}
+      for(let i=0;i<64;i++){if(sdx<sdy){sdx+=ddx;mx+=sx;side=0;}else{sdy+=ddy;my+=sy;side=1;}c=map[my*MW+mx];if(c)break;}
+      const pd=Math.max(.05,side?sdy-ddy:sdx-ddx);zb[x]=pd;const lh=H/pd|0,y0=Math.max(0,(H-lh)>>1),y1=Math.min(H,(H+lh)>>1);
+      let wx=side?px+pd*rx:py+pd*ry;wx-=Math.floor(wx);const tx=(wx*TS)|0,t=tex[c]||tex[1],shade=Math.max(.18,Math.min(1,1.6/pd))*(side?.75:1);
+      for(let y=y0;y<y1;y++){const ty=(((y-(H-lh)/2)*TS/lh)|0)&63,p=t[ty*TS+tx];buf[y*W+x]=rgb((p&255)*shade,((p>>8)&255)*shade,((p>>16)&255)*shade);}}
+    const vis=ents.map(e=>({e,d:(e.x-px)**2+(e.y-py)**2})).sort((a,b)=>b.d-a.d);const inv=1/(plx*dy0-dx0*ply);
+    for(const {e} of vis){const sx=e.x-px,sy=e.y-py,tX=inv*(dy0*sx-dx0*sy),tY=inv*(-ply*sx+plx*sy);if(tY<=.1)continue;
+      const scx=(W/2)*(1+tX/tY)|0,sh=Math.abs(H/tY)|0,sw=sh,y0=(H-sh)>>1,x0=scx-(sw>>1),t=e.fl>0?spr.hit:spr[e.k],shade=Math.max(.25,Math.min(1,1.6/tY));
+      for(let x=Math.max(0,x0);x<Math.min(W,x0+sw);x++){if(tY>=zb[x])continue;const tx=((x-x0)*TS/sw)|0;for(let y=Math.max(0,y0);y<Math.min(H,y0+sh);y++){const p=t[(((y-y0)*TS/sh)|0)*TS+tx];if(p)buf[y*W+x]=rgb((p&255)*shade,((p>>8)&255)*shade,((p>>16)&255)*shade);}}}
+    ctx.putImageData(img,0,0);
+    // weapon + overlays
+    const bob=Math.sin(now/120)*((keys.arrowup||keys.w)?3:0);ctx.fillStyle='#3a3a44';ctx.fillRect(W/2-14,H-44+bob,28,44);ctx.fillStyle='#5a5a66';ctx.fillRect(W/2-8,H-60+bob,16,22);ctx.fillStyle='#33ff66';ctx.fillRect(W/2-3,H-62+bob,6,4);
+    if(shotFlash>0){shotFlash-=dt;ctx.fillStyle='#ffd400';ctx.beginPath();ctx.arc(W/2,H-66+bob,9,0,7);ctx.fill();}
+    ctx.fillStyle='#33ff66';ctx.fillRect(W/2-1,H/2-5,2,4);ctx.fillRect(W/2-1,H/2+2,2,4);ctx.fillRect(W/2-6,H/2-1,4,2);ctx.fillRect(W/2+3,H/2-1,4,2);
+    if(hurtFlash>0){hurtFlash-=dt;ctx.fillStyle='rgba(200,0,0,'+(hurtFlash*1.6)+')';ctx.fillRect(0,0,W,H);}
+    ctx.font='bold 14px monospace';ctx.textAlign='center';
+    if(msgT>0){ctx.fillStyle='#ffd400';ctx.fillText(msg,W/2,40);}
+    if(dead){ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#cc0000';ctx.font='bold 22px monospace';ctx.fillText('GAME OVER',W/2,H/2-10);ctx.fillStyle='#ffffff';ctx.font='12px monospace';ctx.fillText('Score '+score+'   Best '+best.get('bunker'),W/2,H/2+12);ctx.fillText('Click or press Enter to play again',W/2,H/2+30);}
+    hud.textContent='HEALTH '+hp+'%   AMMO '+ammo+'   SCORE '+score+'   LEVEL '+level+'   DRONES '+ents.filter(e=>e.k==='drone').length;
+  }
+  raf=requestAnimationFrame(frame);cv.focus();
+  w.o.onClose=(f=>()=>{f();document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);})(w.o.onClose);
+}
+
+/* --- Mines --- */
+function showMines(){
+  const w=openWin('mines',{title:'Mines',w:250});if(w.body.firstChild)return;
+  const N=9,M=10;let cells,over,started,t0,tick=0,flagMode=false,left;
+  const cnt=h('div',{class:'lcd mlcd',text:'010'}),tm=h('div',{class:'lcd mlcd',text:'000'}),face=h('button',{class:'btn',type:'button',text:'New',onclick:()=>reset()}),fm=h('button',{class:'btn',type:'button',text:'Flag: off',onclick:()=>{flagMode=!flagMode;fm.textContent='Flag: '+(flagMode?'on':'off');fm.classList.toggle('on',flagMode);}});
+  const grid=h('div',{class:'mgrid in',role:'grid','aria-label':'Mine field'});
+  w.body.append(h('div',{class:'row',style:'justify-content:space-between;flex-wrap:nowrap'},cnt,face,tm),grid,h('div',{class:'row',style:'justify-content:space-between'},fm,h('span',{class:'note',text:'Right-click or Flag mode marks a mine.'})));
+  w.o.onClose=()=>clearInterval(tick);
+  const COL=['','#0000cc','#007a00','#cc0000','#000080','#800000','#008080','#0a0a0a','#808080'];
+  function reset(){over=false;started=false;clearInterval(tick);tm.textContent='000';left=N*N-M;cells=Array.from({length:N*N},(_,i)=>({i,m:false,o:false,f:false,n:0}));grid.textContent='';
+    for(const c of cells){c.el=h('button',{class:'mc',type:'button','aria-label':'Hidden square'});c.el.addEventListener('click',()=>flagMode?flag(c):open(c));c.el.addEventListener('contextmenu',e=>{e.preventDefault();flag(c);});grid.append(c.el);}paintCount();}
+  const nb=c=>{const x=c.i%N,y=(c.i/N)|0,r=[];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if((dx||dy)&&nx>=0&&ny>=0&&nx<N&&ny<N)r.push(cells[ny*N+nx]);}return r;};
+  function plant(safe){const pool=cells.filter(c=>c!==safe&&!nb(safe).includes(c)).sort(()=>Math.random()-.5).slice(0,M);pool.forEach(c=>c.m=true);cells.forEach(c=>c.n=nb(c).filter(x=>x.m).length);started=true;t0=Date.now();tick=setInterval(()=>{tm.textContent=String(Math.min(999,(Date.now()-t0)/1000|0)).padStart(3,'0');},500);}
+  function paintCount(){cnt.textContent=String(M-cells.filter(c=>c.f).length).padStart(3,'0');}
+  function flag(c){if(over||c.o)return;c.f=!c.f;c.el.textContent=c.f?'⚑':'';c.el.classList.toggle('flag',c.f);c.el.setAttribute('aria-label',c.f?'Flagged':'Hidden square');sfx('click');paintCount();}
+  function open(c){if(over||c.f||c.o)return;if(!started)plant(c);
+    if(c.m){over=true;clearInterval(tick);sfx('boom');cells.forEach(x=>{if(x.m){x.el.textContent='✹';x.el.classList.add('mine');}});c.el.classList.add('boom');face.textContent='Try Again';return;}
+    const st=[c];while(st.length){const x=st.pop();if(x.o||x.f)continue;x.o=true;left--;x.el.classList.add('open');x.el.textContent=x.n||'';x.el.style.color=COL[x.n];x.el.setAttribute('aria-label',x.n?x.n+' mines nearby':'Empty');if(!x.n)st.push(...nb(x).filter(y=>!y.o));}
+    sfx('click');if(left===0){over=true;clearInterval(tick);const s=(Date.now()-t0)/1000|0;face.textContent='You Win!';sfx('door');cells.forEach(x=>{if(x.m){x.f=true;x.el.textContent='⚑';x.el.classList.add('flag');}});paintCount();
+      const b=+store.get('dt-best-mines','0');if(!b||s<b)store.set('dt-best-mines',String(s));msgBox('Mines','You cleared the field in '+s+' seconds.'+(b&&s>=b?' Your best is '+b+' seconds.':' That is your best time!'),false);}}
+  reset();
+}
+
+/* --- Snake --- */
+function showSnake(){
+  if(wins.has('snake'))return focusWin('snake');
+  const N=20,S=14;let snake,dir,next,food,score,alive=false,timer=0;
+  const w=openWin('snake',{title:'Snake',w:N*S+30,onClose:()=>{clearInterval(timer);document.removeEventListener('keydown',kd);}});
+  const cv=h('canvas',{width:N*S,height:N*S,class:'snakecv',tabindex:'0','aria-label':'Snake game. Arrow keys to steer.'}),info=h('div',{class:'ghud'});
+  const pad=h('div',{class:'gtouch'});const tb=(l,d)=>{const b=h('button',{class:'btn',type:'button',text:l});b.addEventListener('pointerdown',e=>{e.preventDefault();turn(d);});return b;};
+  pad.append(tb('◄',[-1,0]),tb('▲',[0,-1]),tb('▼',[0,1]),tb('►',[1,0]),h('button',{class:'btn',type:'button',text:'Start',onclick:()=>start()}));
+  w.body.append(cv,info,pad);const g=cv.getContext('2d');
+  function turn(d){if(!alive)return start();if(d[0]!==-dir[0]||d[1]!==-dir[1])next=d;}
+  const kd=e=>{if(document.activeElement!==cv)return;const m={arrowleft:[-1,0],arrowright:[1,0],arrowup:[0,-1],arrowdown:[0,1],a:[-1,0],d:[1,0],w:[0,-1],s:[0,1]}[e.key.toLowerCase()];if(m){e.preventDefault();turn(m);}else if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!alive)start();}};
+  document.addEventListener('keydown',kd);cv.addEventListener('click',()=>{cv.focus();actx();if(!alive)start();});
+  function place(){do{food=[Math.random()*N|0,Math.random()*N|0];}while(snake.some(p=>p[0]===food[0]&&p[1]===food[1]));}
+  function start(){snake=[[9,10],[8,10],[7,10]];dir=next=[1,0];score=0;alive=true;place();clearInterval(timer);timer=setInterval(step,140);cv.focus();draw();}
+  function step(){dir=next;const hd=[snake[0][0]+dir[0],snake[0][1]+dir[1]];
+    if(hd[0]<0||hd[1]<0||hd[0]>=N||hd[1]>=N||snake.some(p=>p[0]===hd[0]&&p[1]===hd[1])){alive=false;clearInterval(timer);best.set('snake',score);sfx('boom');draw();return;}
+    snake.unshift(hd);if(hd[0]===food[0]&&hd[1]===food[1]){score+=10;sfx('eat');place();if(score%50===0){clearInterval(timer);timer=setInterval(step,Math.max(60,140-score));}}else snake.pop();draw();}
+  function draw(){g.fillStyle='#000022';g.fillRect(0,0,N*S,N*S);g.fillStyle='#cc0000';g.fillRect(food[0]*S+2,food[1]*S+2,S-4,S-4);
+    snake.forEach((p,i)=>{g.fillStyle=i?'#22bb55':'#33ff66';g.fillRect(p[0]*S+1,p[1]*S+1,S-2,S-2);});
+    if(!alive){g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,0,N*S,N*S);g.fillStyle='#ffd400';g.font='bold 18px monospace';g.textAlign='center';g.fillText(score?'GAME OVER':'SNAKE',N*S/2,N*S/2-8);g.fillStyle='#ffffff';g.font='12px monospace';g.fillText('Click or press Enter to play',N*S/2,N*S/2+14);}
+    info.textContent='SCORE '+score+'   BEST '+best.get('snake');}
+  snake=[[9,10],[8,10],[7,10]];food=[14,10];score=0;draw();
+}
+
+/* ---------- desktop / taskbar ---------- */
+const actions={msgr:()=>me.on?showBuddyList():showSignOn(),chat:()=>me.on?showRooms():(showSignOn(),msgBox('Chat Rooms','Sign on first, then open Chat Rooms.',false)),sound:showSounds,read:showReadme,web:openBrowser,games:showGames,mail:showMail,radio:showRadio,off:signOff};
+function iconOpen(el,fn){let last=0;el.addEventListener('click',()=>{const n=Date.now();if(n-last<450||matchMedia('(pointer:coarse)').matches){fn();last=0;}else last=n;});el.addEventListener('keydown',e=>{if(e.key==='Enter')fn();});}
+iconOpen($('#ic-msgr'),actions.msgr);iconOpen($('#ic-chat'),actions.chat);iconOpen($('#ic-read'),actions.read);iconOpen($('#ic-games'),actions.games);iconOpen($('#ic-mail'),actions.mail);iconOpen($('#ic-web'),actions.web);iconOpen($('#ic-radio'),actions.radio);
+const menu=$('#menu'),startBtn=$('#start');
+startBtn.addEventListener('click',e=>{e.stopPropagation();menu.hidden=!menu.hidden;startBtn.classList.toggle('on',!menu.hidden);});
+menu.addEventListener('click',e=>{const a=e.target.closest('button');if(a)actions[a.dataset.a]();});
+document.addEventListener('click',()=>{menu.hidden=true;startBtn.classList.remove('on');});
+const clock=$('#clock');const tk=()=>{clock.textContent=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});};tk();setInterval(tk,15000);
+addEventListener('pagehide',()=>{if(me.on&&room)room.presence({on:null}).catch(()=>{});});
+
+showSignOn();
+})();
+</script>
+
+</body></html>
